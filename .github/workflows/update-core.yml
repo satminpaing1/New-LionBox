@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   update-core:
@@ -44,7 +45,7 @@ jobs:
           echo "$LATEST" > android/.xray-core-version
 
           OLD_VERSION=$(grep -oP 'versionName = "\K[0-9.]+' android/V2rayNG/app/build.gradle.kts)
-          NEW_VERSION=$(awk -F. -v v="$OLD_VERSION" 'BEGIN{print v"."$3+1}' <<< "$OLD_VERSION")
+          NEW_VERSION=$(awk -F. -v OFS=. '{$3+=1; print}' <<< "$OLD_VERSION")
           sed -i "s/versionName = \"$OLD_VERSION\"/versionName = \"$NEW_VERSION\"/" android/V2rayNG/app/build.gradle.kts
 
           git add android/.xray-core-version android/V2rayNG/app/build.gradle.kts
