@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
  * is still connected, so the socket to the server is never reset and the core keeps using a dead
  * connection. Deciding that a handover happened is what this class is for, acting on it is not.
  *
- * Only used from Android P and above, see CoreServiceManager.startNetworkMonitor().
+ * Used on supported Android versions by CoreServiceManager.startNetworkMonitor().
  * [onHandover] is invoked on a background thread after the debounce window and may block.
  */
 class NetworkMonitor(

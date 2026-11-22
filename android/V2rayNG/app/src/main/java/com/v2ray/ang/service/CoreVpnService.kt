@@ -70,6 +70,7 @@ class CoreVpnService : VpnService(), ServiceControl {
             }
         }
 
+        CoreServiceManager.stopCoreLoop()
         unlockStart()
         NotificationManager.cancelNotification()
     }

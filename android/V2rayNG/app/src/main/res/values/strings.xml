@@ -574,4 +574,15 @@
     <string name="sub_info_traffic" translatable="false">%1$s / %2$s</string>
     <string name="sub_info_unlimited">Unlimited</string>
 
+    <string name="runtime_unavailable">—</string>
+    <string name="runtime_uptime">Uptime · %1$s</string>
+    <string name="runtime_speed">↓ Download %1$s · ↑ Upload %2$s</string>
+    <string name="runtime_network">Network · %1$s</string>
+    <string name="runtime_wifi">Wi-Fi</string>
+    <string name="runtime_cellular">SIM data</string>
+    <string name="runtime_ethernet">Ethernet</string>
+    <string name="runtime_exit_ip">VPN exit IP · %1$s</string>
+    <string name="runtime_ip_loading">Checking VPN exit IP…</string>
+    <string name="runtime_ip_error">Location unavailable</string>
+    <string name="runtime_ip_privacy">IP location uses api.ip.sb through the VPN. Country is an IP-location estimate.</string>
 </resources>

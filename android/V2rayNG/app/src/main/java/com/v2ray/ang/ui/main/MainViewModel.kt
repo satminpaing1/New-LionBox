@@ -128,6 +128,9 @@ class MainViewModel(
 
     private fun handleServiceEvent(event: MainServiceEvent) {
         when (event) {
+            is MainServiceEvent.RuntimeUpdated -> _uiState.update { state ->
+                if (state.isRunning) state.copy(runtime = event.telemetry) else state
+            }
             MainServiceEvent.StateRunning -> updateRunningState(true, clearTestingText = false)
             MainServiceEvent.StateNotRunning -> updateRunningState(false, clearTestingText = false)
             MainServiceEvent.StateStartSuccess -> {
@@ -934,6 +937,7 @@ class MainViewModel(
         _uiState.update { state ->
             state.copy(
                 isRunning = running,
+                runtime = if (running) state.runtime else null,
                 isTesting = testRequests.isTesting,
                 status = if (!clearTestingText && state.isRunning == running) state.status
                 else if (running) MainStatus.Connected else MainStatus.Disconnected

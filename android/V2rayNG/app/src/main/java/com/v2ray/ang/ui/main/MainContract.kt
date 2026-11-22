@@ -21,6 +21,7 @@ data class MainUiState(
     val selectedGroupId: String = "",
     val selectedGuid: String? = null,
     val isRunning: Boolean = false,
+    val runtime: com.v2ray.ang.dto.RuntimeTelemetry? = null,
     val isTesting: Boolean = false,
     val status: MainStatus = MainStatus.Disconnected,
     val locateTarget: LocateTarget? = null,

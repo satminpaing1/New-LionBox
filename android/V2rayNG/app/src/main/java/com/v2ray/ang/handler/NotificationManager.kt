@@ -44,7 +44,7 @@ object NotificationManager {
      * @param currentConfig The current profile configuration.
      */
     fun startSpeedNotification() {
-        if (MmkvManager.decodeSettingsBool(AppConfig.PREF_SPEED_ENABLED) != true) return
+
         if (speedNotificationJob != null || CoreServiceManager.isRunning() == false) return
 
         var lastZeroSpeed = false
@@ -65,7 +65,7 @@ object NotificationManager {
         val service = getService() ?: return
 
         // Reset last query time to avoid querying stats too soon after showing the notification
-        lastQueryTime = System.currentTimeMillis()
+        lastQueryTime = android.os.SystemClock.elapsedRealtime()
 
         val flags = PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
 
@@ -228,7 +228,7 @@ object NotificationManager {
      * @return The current zero speed state.
      */
     private fun updateSpeedNotificationOnce(lastZeroSpeed: Boolean): Boolean {
-        val queryTime = System.currentTimeMillis()
+        val queryTime = android.os.SystemClock.elapsedRealtime()
         val sinceLastQueryIn = (queryTime - lastQueryTime)
 
         // If the query interval is too short, skip this round to avoid excessive CPU usage
@@ -263,10 +263,11 @@ object NotificationManager {
             }
         }
 
+        getService()?.let { CoreServiceManager.publishRuntime(it, proxyDownlink, proxyUplink, sinceLastQueryIn) }
         val proxyTotal = proxyUplink + proxyDownlink
         val directTotal = directUplink + directDownlink
         val zeroSpeed = proxyTotal + directTotal == 0L
-        if (!zeroSpeed || !lastZeroSpeed) {
+        if (MmkvManager.decodeSettingsBool(AppConfig.PREF_SPEED_ENABLED) == true && (!zeroSpeed || !lastZeroSpeed)) {
             val text = StringBuilder()
             appendSpeedString(
                 text, AppConfig.TAG_PROXY,

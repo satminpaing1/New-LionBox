@@ -52,6 +52,84 @@ object CoreServiceManager {
     private var processFinder: XrayProcessFinder? = null
     private var browserDialer: IDialerService? = null
     private var networkMonitor: NetworkMonitor? = null
+    private val runtimeSession = RuntimeSession()
+    private var wakeLock: android.os.PowerManager.WakeLock? = null
+    private var ipLookupJob: kotlinx.coroutines.Job? = null
+    private val runtimeLookupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    @Volatile private var underlyingNetwork: android.net.Network? = null
+    @Volatile private var runtimeEndpoint: SpeedtestManager.RemoteEndpointInfo? = null
+    @Volatile private var ipLookupState = "loading"
+    private val runtimeGeneration = java.util.concurrent.atomic.AtomicLong()
+
+    private fun startRuntime(service: Service) {
+        if (!runtimeSession.start(android.os.SystemClock.elapsedRealtime())) return
+        val power = service.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+        wakeLock = power.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "LionBox:VpnRuntime").apply {
+            setReferenceCounted(false)
+            acquire(12 * 60 * 60 * 1000L)
+        }
+        refreshRuntimeEndpoint()
+    }
+
+    private fun refreshRuntimeEndpoint() {
+        val generation = runtimeGeneration.incrementAndGet()
+        ipLookupJob?.cancel()
+        runtimeEndpoint = null
+        ipLookupState = "loading"
+        ipLookupJob = runtimeLookupScope.launch(Dispatchers.IO) {
+            val endpoint = try {
+                SpeedtestManager.getRemoteIPInfo(useDefaultEndpoint = true)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                null
+            }
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            withContext(Dispatchers.Main) {
+                if (isRunning() && runtimeGeneration.get() == generation) {
+                    runtimeEndpoint = endpoint
+                    ipLookupState = if (endpoint?.ipAddress != null && countryFlag(endpoint.countryCode) != null) "ready" else "error"
+                }
+            }
+        }
+    }
+
+    @Synchronized
+    fun publishRuntime(service: Service, downloadBytes: Long, uploadBytes: Long, intervalMillis: Long) {
+        val sample = runtimeSession.sample(android.os.SystemClock.elapsedRealtime(), downloadBytes, uploadBytes, intervalMillis) ?: return
+        val lock = wakeLock
+        if (lock != null && !lock.isHeld) lock.acquire(12 * 60 * 60 * 1000L)
+        val manager = service.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = underlyingNetwork ?: manager.activeNetwork
+        val capabilities = network?.let { manager.getNetworkCapabilities(it) }
+            ?.takeIf { it.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_NOT_VPN) }
+        val transport = when {
+            capabilities?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) == true -> "wifi"
+            capabilities?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) == true -> "cellular"
+            capabilities?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_ETHERNET) == true -> "ethernet"
+            else -> "unknown"
+        }
+        val endpoint = runtimeEndpoint
+        MessageHelper.sendMsg2UI(service, AppConfig.MSG_RUNTIME_TELEMETRY, sample.copy(
+            transport = transport,
+            ipAddress = endpoint?.ipAddress,
+            countryCode = endpoint?.countryCode,
+            countryName = endpoint?.countryName ?: endpoint?.country,
+            ipLookupState = ipLookupState,
+        ))
+    }
+
+    @Synchronized
+    private fun stopRuntime() {
+        runtimeSession.stop()
+        runtimeGeneration.incrementAndGet()
+        ipLookupJob?.cancel()
+        ipLookupJob = null
+        runtimeEndpoint = null
+        underlyingNetwork = null
+        wakeLock?.let { if (it.isHeld) it.release() }
+        wakeLock = null
+    }
     private val connectionTestScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     @Volatile
@@ -107,6 +185,7 @@ object CoreServiceManager {
             val message = e.message?.takeUnless { it.isBlank() } ?: e.javaClass.simpleName
             LogUtil.e(AppConfig.TAG, "StartCore-Manager: $message", e)
             MessageHelper.sendMsg2UI(service, AppConfig.MSG_STATE_START_FAILURE, message)
+            stopCoreLoop()
             NotificationManager.cancelNotification()
             return false
         }
@@ -180,6 +259,8 @@ object CoreServiceManager {
         if (!isReload) {
             MessageHelper.sendMsg2UI(service, AppConfig.MSG_STATE_START_SUCCESS, "")
         }
+        startRuntime(service)
+        if (isReload) refreshRuntimeEndpoint()
         NotificationManager.startSpeedNotification()
         LogUtil.i(AppConfig.TAG, "StartCore-Manager: Core started successfully")
     }
@@ -190,6 +271,7 @@ object CoreServiceManager {
      * @return True if the core was stopped successfully, false otherwise.
      */
     fun stopCoreLoop(): Boolean {
+        stopRuntime()
         connectionTestScope.coroutineContext.cancelChildren()
         val service = getService() ?: return false
 
@@ -232,13 +314,15 @@ object CoreServiceManager {
      * and root mode as well, not just behind the VPN interface.
      */
     private fun startNetworkMonitor(service: Service) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
         if (networkMonitor != null) return
 
         val connectivity = service.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return
         networkMonitor = NetworkMonitor(
             connectivity = connectivity,
-            onUnderlyingNetworksChanged = { networks -> serviceControl?.get()?.setUnderlyingNetworks(networks) },
+            onUnderlyingNetworksChanged = { networks ->
+                underlyingNetwork = networks?.firstOrNull()
+                serviceControl?.get()?.setUnderlyingNetworks(networks)
+            },
             onHandover = { reloadCore() },
         ).also { it.register() }
     }
@@ -497,7 +581,7 @@ object CoreServiceManager {
             when (intent?.action) {
                 Intent.ACTION_SCREEN_OFF -> {
                     LogUtil.i(AppConfig.TAG, "StartCore-Manager: Screen off")
-                    NotificationManager.stopSpeedNotification()
+                    NotificationManager.startSpeedNotification()
                 }
 
                 Intent.ACTION_SCREEN_ON -> {

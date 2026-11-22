@@ -16,6 +16,8 @@ object SpeedtestManager {
     data class RemoteEndpointInfo(
         val country: String?,
         val ipAddress: String?,
+        val countryCode: String? = null,
+        val countryName: String? = null,
     )
 
     /**
@@ -53,8 +55,8 @@ object SpeedtestManager {
         return -1
     }
 
-    fun getRemoteIPInfo(): RemoteEndpointInfo? {
-        val url = MmkvManager.decodeSettingsString(AppConfig.PREF_IP_API_URL)
+    fun getRemoteIPInfo(useDefaultEndpoint: Boolean = false): RemoteEndpointInfo? {
+        val url = if (useDefaultEndpoint) AppConfig.IP_API_URL else MmkvManager.decodeSettingsString(AppConfig.PREF_IP_API_URL)
             .takeIf { !it.isNullOrBlank() } ?: AppConfig.IP_API_URL
 
         val proxyUsername = SettingsManager.getSocksUsername()
@@ -70,6 +72,10 @@ object SpeedtestManager {
                 proxyPassword = proxyPassword
             )
         ) ?: return null
+        return parseRemoteIPInfo(content)
+    }
+
+    internal fun parseRemoteIPInfo(content: String): RemoteEndpointInfo? {
         val ipInfo = JsonUtil.fromJsonSafe(content, IPAPIInfo::class.java) ?: return null
 
         val ip = listOf(
@@ -77,7 +83,7 @@ object SpeedtestManager {
             ipInfo.clientIp,
             ipInfo.ip_addr,
             ipInfo.query
-        ).firstOrNull { !it.isNullOrBlank() }
+        ).firstOrNull { !it.isNullOrBlank() } ?: return null
 
         val country = listOf(
             ipInfo.country_code,
@@ -89,6 +95,9 @@ object SpeedtestManager {
         return RemoteEndpointInfo(
             country = country,
             ipAddress = ip,
+            countryCode = listOf(ipInfo.country_code, ipInfo.countryCode, ipInfo.location?.country_code)
+                .firstOrNull { com.v2ray.ang.core.countryFlag(it) != null },
+            countryName = ipInfo.country_name?.takeIf { it.isNotBlank() } ?: ipInfo.country,
         )
     }
 }

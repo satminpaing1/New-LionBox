@@ -98,28 +98,30 @@ object CoreConfigManager {
 
         val json = JsonUtil.parseString(raw)?.takeIf { it.isJsonObject }?.asJsonObject ?: return result
 
-        // Inject or remove traffic statistics configuration based on user preference
-        if (MmkvManager.decodeSettingsBool(AppConfig.PREF_SPEED_ENABLED) == true) {
-            if (!json.has("stats")) {
-                json.add("stats", JsonObject())
+        json.add("stats", JsonObject())
+        val policy = json.get("policy")?.takeIf { it.isJsonObject }?.asJsonObject ?: JsonObject()
+        val system = policy.get("system")?.takeIf { it.isJsonObject }?.asJsonObject ?: JsonObject()
+        system.addProperty("statsOutboundUplink", true)
+        system.addProperty("statsOutboundDownlink", true)
+        policy.add("system", system)
+        json.add("policy", policy)
+        val proxyTag = json.getAsJsonArray("outbounds")?.firstOrNull { element ->
+            element.isJsonObject && element.asJsonObject.get("protocol")?.asString !in listOf("freedom", "blackhole", "dns")
+        }?.asJsonObject?.get("tag")?.asString
+        if (!proxyTag.isNullOrBlank()) {
+            val routing = json.get("routing")?.takeIf { it.isJsonObject }?.asJsonObject ?: JsonObject()
+            val existingRules = routing.get("rules")?.takeIf { it.isJsonArray }?.asJsonArray
+            val rule = JsonObject().apply {
+                addProperty("type", "field")
+                add("domain", JsonUtil.parseString("[\"full:api.ip.sb\"]"))
+                addProperty("outboundTag", proxyTag)
             }
-            if (!json.has("policy")) {
-                val policyObj = JsonObject()
-                val systemObj = JsonObject()
-                systemObj.addProperty("statsOutboundUplink", true)
-                systemObj.addProperty("statsOutboundDownlink", true)
-                policyObj.add("system", systemObj)
-                json.add("policy", policyObj)
+            val rules = com.google.gson.JsonArray().apply {
+                add(rule)
+                existingRules?.forEach { add(it) }
             }
-        } else {
-            json.remove("stats")
-            // Keep user-defined policy levels, only strip the stats-related system block
-            json.get("policy")?.takeIf { it.isJsonObject }?.asJsonObject?.let { policy ->
-                policy.remove("system")
-                if (policy.entrySet().isEmpty()) {
-                    json.remove("policy")
-                }
-            }
+            routing.add("rules", rules)
+            json.add("routing", routing)
         }
 
         if (!needTun()) {
@@ -228,8 +230,15 @@ object CoreConfigManager {
             }
         }
 
+        v2rayConfig.routing.rules.add(0, V2rayConfig.RoutingBean.RulesBean(
+            domain = listOf("full:api.ip.sb"),
+            outboundTag = if (policyGroupBalancerTags[AppConfig.TAG_PROXY] == null) AppConfig.TAG_PROXY else null,
+            balancerTag = policyGroupBalancerTags[AppConfig.TAG_PROXY],
+        ))
         applyObservability(v2rayConfig, balancerStrategies)
-        applySpeedDisabled(v2rayConfig)
+        v2rayConfig.stats = mapOf<String, Any>()
+        if (v2rayConfig.policy == null) v2rayConfig.policy = V2rayConfig.PolicyBean(levels = emptyMap())
+        v2rayConfig.policy?.system = mapOf("statsOutboundUplink" to true, "statsOutboundDownlink" to true)
         resolveOutboundDomainsToHosts(v2rayConfig)
 
         return v2rayConfig
@@ -721,16 +730,6 @@ object CoreConfigManager {
                     mux = null
                 )
             )
-        }
-    }
-
-    /**
-     * Remove speed-test runtime sections when the feature is disabled.
-     */
-    private fun applySpeedDisabled(v2rayConfig: V2rayConfig) {
-        if (MmkvManager.decodeSettingsBool(AppConfig.PREF_SPEED_ENABLED) != true) {
-            v2rayConfig.stats = null
-            v2rayConfig.policy?.system = null
         }
     }
 

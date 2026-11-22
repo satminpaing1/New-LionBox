@@ -51,6 +51,11 @@ class MainRepository(
             val event = when (safeIntent.getIntExtra("key", 0)) {
                 AppConfig.MSG_STATE_RUNNING -> MainServiceEvent.StateRunning
                 AppConfig.MSG_STATE_NOT_RUNNING -> MainServiceEvent.StateNotRunning
+                AppConfig.MSG_RUNTIME_TELEMETRY -> {
+                    val telemetry = safeIntent.serializable<com.v2ray.ang.dto.RuntimeTelemetry>("content")
+                        ?: return
+                    MainServiceEvent.RuntimeUpdated(telemetry)
+                }
                 AppConfig.MSG_STATE_START_SUCCESS -> MainServiceEvent.StateStartSuccess
                 AppConfig.MSG_STATE_START_FAILURE -> MainServiceEvent.StateStartFailure(
                     safeIntent.getStringExtra("content")

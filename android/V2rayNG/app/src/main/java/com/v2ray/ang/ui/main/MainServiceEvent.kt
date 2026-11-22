@@ -5,6 +5,7 @@ import com.v2ray.ang.dto.RealPingResult
 
 sealed class MainServiceEvent {
     data object StateRunning : MainServiceEvent()
+    data class RuntimeUpdated(val telemetry: com.v2ray.ang.dto.RuntimeTelemetry) : MainServiceEvent()
     data object StateNotRunning : MainServiceEvent()
     data object StateStartSuccess : MainServiceEvent()
     data class StateStartFailure(val message: String? = null) : MainServiceEvent()
