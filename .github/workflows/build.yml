@@ -43,7 +43,7 @@ jobs:
 
     - name: Clone hev-socks5-tunnel
       run: |
-        git clone --depth 1 https://github.com/heiher/hev-socks5-tunnel.git hev-socks5-tunnel
+        git clone --depth 1 --recursive https://github.com/heiher/hev-socks5-tunnel.git hev-socks5-tunnel
 
     - name: Build libhevtun
       run: |
