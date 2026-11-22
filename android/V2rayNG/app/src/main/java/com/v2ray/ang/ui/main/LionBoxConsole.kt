@@ -135,8 +135,10 @@ internal fun LionBoxConsole(
                     item {
                         ConsoleCard {
                             Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Surface(shape = CircleShape, color = if (uiState.isRunning) colors.secondaryContainer else colors.primaryContainer, border = BorderStroke(1.dp, if (uiState.isRunning) colors.secondary else colors.primary)) {
-                                    Text(displayText, Modifier.padding(horizontal = 16.dp, vertical = 8.dp), style = MaterialTheme.typography.labelMedium, color = if (uiState.isRunning) colors.onSecondaryContainer else colors.onPrimaryContainer)
+                                if (!uiState.isRunning) {
+                                    Surface(shape = CircleShape, color = colors.primaryContainer, border = BorderStroke(1.dp, colors.primary)) {
+                                        Text(displayText, Modifier.padding(horizontal = 16.dp, vertical = 8.dp), style = MaterialTheme.typography.labelMedium, color = colors.onPrimaryContainer)
+                                    }
                                 }
                                 LionPowerButton(uiState.isRunning, connectionAction(uiState.selectedGuid != null, uiState.isRunning) != null && !isLoading) {
                                     connectionAction(uiState.selectedGuid != null, uiState.isRunning)?.let(onAction)
