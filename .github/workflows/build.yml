@@ -61,6 +61,11 @@ jobs:
         fileName: 'libv2ray.aar'
         out-file-path: android/V2rayNG/app/libs/
 
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v5
+      with:
+        gradle-version: '9.8.2'
+
     - name: Setup Java
       uses: actions/setup-java@v6.1.0
       with:
@@ -78,9 +83,8 @@ jobs:
       working-directory: ${{ github.workspace }}/android/V2rayNG
       run: |
         echo "sdk.dir=${ANDROID_HOME}" > local.properties
-        chmod 755 gradlew
-        ./gradlew licenseFdroidReleaseReport
-        ./gradlew assembleRelease -Pandroid.injected.signing.store.file=${{ steps.android_keystore.outputs.filePath }} -Pandroid.injected.signing.store.password=${{ secrets.APP_KEYSTORE_PASSWORD }} -Pandroid.injected.signing.key.alias=${{ secrets.APP_KEYSTORE_ALIAS }} -Pandroid.injected.signing.key.password=${{ secrets.APP_KEY_PASSWORD }}
+        gradle licenseFdroidReleaseReport
+        gradle assembleRelease -Pandroid.injected.signing.store.file=${{ steps.android_keystore.outputs.filePath }} -Pandroid.injected.signing.store.password=${{ secrets.APP_KEYSTORE_PASSWORD }} -Pandroid.injected.signing.key.alias=${{ secrets.APP_KEYSTORE_ALIAS }} -Pandroid.injected.signing.key.password=${{ secrets.APP_KEY_PASSWORD }}
 
     - name: Upload APK artifacts
       uses: actions/upload-artifact@v7
