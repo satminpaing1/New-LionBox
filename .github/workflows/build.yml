@@ -112,8 +112,9 @@ jobs:
           mkdir -p release-files
 
           find release -type f -name '*.apk' | while read apk; do
-            cp "$apk" release-files/
-            gpg --batch --yes --local-user "$KEY" --detach-sign --output "release-files/$(basename "$apk").sig" "$apk"
+            newname="$(basename "$apk" | sed 's/^v2rayNG_/LionBox_/')"
+            cp "$apk" "release-files/$newname"
+            gpg --batch --yes --local-user "$KEY" --detach-sign --output "release-files/$newname.sig" "release-files/$newname"
           done
 
           gpg --armor --export "$KEY" > release-files/lionbox-public-key.asc
@@ -124,4 +125,4 @@ jobs:
           file: release-files/*
           tag: ${{ inputs.release_tag }}
           file_glob: true
-          prerelease: true
+          prerelease: false
