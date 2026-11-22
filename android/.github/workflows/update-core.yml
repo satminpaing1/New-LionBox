@@ -1,0 +1,63 @@
+name: Update Xray Core
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 18 * * *'  # daily at 18:00 UTC
+
+permissions:
+  contents: write
+
+jobs:
+  update-core:
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          submodules: 'recursive'
+          fetch-depth: '0'
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check latest AndroidLibXrayLite release
+        id: latest
+        run: |
+          LATEST=$(gh api repos/2dust/AndroidLibXrayLite/releases/latest --jq .tag_name)
+          CURRENT=$(git -C AndroidLibXrayLite describe --tags --abbrev=0)
+          echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          if [ "$LATEST" = "$CURRENT" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Stop if core is current
+        if: steps.latest.outputs.changed != 'true'
+        run: echo "Core ${{ steps.latest.outputs.current }} is already the latest release."
+
+      - name: Bump submodule, app version and commit
+        if: steps.latest.outputs.changed == 'true'
+        env:
+          LATEST: ${{ steps.latest.outputs.latest }}
+        run: |
+          git config user.name "LionBox Bot"
+          git config user.email "lionbox@users.noreply.github.com"
+          git -C AndroidLibXrayLite fetch --tags
+          git -C AndroidLibXrayLite checkout "$LATEST"
+
+          OLD_VERSION=$(grep -oP 'versionName = "\K[0-9.]+' V2rayNG/app/build.gradle.kts)
+          NEW_VERSION=$(awk -F. -v v="$OLD_VERSION" 'BEGIN{print v"."$3+1}' <<< "$OLD_VERSION")
+          sed -i "s/versionName = \"$OLD_VERSION\"/versionName = \"$NEW_VERSION\"/" V2rayNG/app/build.gradle.kts
+
+          git add AndroidLibXrayLite V2rayNG/app/build.gradle.kts
+          git commit -m "Update Xray core to $LATEST, app version $NEW_VERSION"
+          git push origin HEAD:main
+
+      - name: Trigger signed release build
+        if: steps.latest.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NEW_VERSION=$(grep -oP 'versionName = "\K[0-9.]+' V2rayNG/app/build.gradle.kts)
+          gh workflow run build.yml -f release_tag="v${NEW_VERSION}-lionbox"
