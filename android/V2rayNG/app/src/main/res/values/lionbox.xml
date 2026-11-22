@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lion_dashboard">Dashboard</string>
+    <string name="lion_servers">Servers</string>
+    <string name="lion_logs">Logs</string>
+    <string name="lion_subtitle">Shadowsocks &amp; VLESS</string>
+    <string name="lion_paste">Import key / config</string>
+    <string name="lion_tools">Server tools</string>
+    <string name="lion_tap_connect">Tap to connect</string>
+    <string name="lion_tap_disconnect">Tap to disconnect</string>
+    <string name="lion_no_server">Select a server to connect</string>
+    <string name="lion_protocol">Protocol</string>
+    <string name="lion_latency">Latency</string>
+    <string name="lion_test">Test latency</string>
+    <string name="lion_search">Search servers</string>
+    <string name="lion_empty">Your servers, in one place</string>
+    <string name="lion_no_results">No matching servers</string>
+    <string name="lion_empty_detail">Paste a Shadowsocks config or VLESS key to add your server. Your existing profiles stay on this device.</string>
+    <string name="lion_config">Key / config</string>
+    <string name="lion_import">Import</string>
+    <string name="lion_selected">Selected server</string>
+    <string name="lion_select">Select server</string>
+    <string name="lion_logs_empty">No activity yet. Connection events will appear here.</string>
+</resources>

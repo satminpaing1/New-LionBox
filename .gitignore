@@ -1,0 +1,10 @@
+android/sdk/
+android/hev-source/
+android/hev-socks5-tunnel/
+android/V2rayNG/.gradle/
+android/V2rayNG/.kotlin/
+android/V2rayNG/local.properties
+android/V2rayNG/**/build/
+android/V2rayNG/app/libs/*.aar
+android/V2rayNG/app/src/main/jniLibs/
+android/**/*.zip

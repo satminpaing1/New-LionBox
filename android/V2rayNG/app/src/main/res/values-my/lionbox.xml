@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lion_dashboard">ပင်မစာမျက်နှာ</string>
+    <string name="lion_servers">ဆာဗာများ</string>
+    <string name="lion_logs">မှတ်တမ်း</string>
+    <string name="lion_subtitle">Shadowsocks &amp; VLESS</string>
+    <string name="lion_paste">Key / config ထည့်မည်</string>
+    <string name="lion_tools">ဆာဗာ စီမံရန်</string>
+    <string name="lion_tap_connect">ချိတ်ဆက်ရန် နှိပ်ပါ</string>
+    <string name="lion_tap_disconnect">ဖြုတ်ရန် နှိပ်ပါ</string>
+    <string name="lion_no_server">ချိတ်ဆက်ရန် ဆာဗာရွေးပါ</string>
+    <string name="lion_protocol">ပရိုတိုကော</string>
+    <string name="lion_latency">တုံ့ပြန်ချိန်</string>
+    <string name="lion_test">တုံ့ပြန်ချိန် စမ်းမည်</string>
+    <string name="lion_search">ဆာဗာရှာရန်</string>
+    <string name="lion_empty">သင့်ဆာဗာများကို ဒီနေရာမှာ ထည့်ပါ</string>
+    <string name="lion_no_results">ကိုက်ညီသော ဆာဗာမတွေ့ပါ</string>
+    <string name="lion_empty_detail">Shadowsocks config သို့မဟုတ် VLESS key ကို ကူးထည့်ပါ။ မူလဆာဗာများကို ဒီဖုန်းထဲမှာပဲ ဆက်လက်သိမ်းထားပါမည်။</string>
+    <string name="lion_config">Key / config</string>
+    <string name="lion_import">ထည့်မည်</string>
+    <string name="lion_selected">ရွေးထားသော ဆာဗာ</string>
+    <string name="lion_select">ဆာဗာရွေးရန်</string>
+    <string name="lion_logs_empty">မှတ်တမ်း မရှိသေးပါ။ ချိတ်ဆက်မှုမှတ်တမ်းများ ဒီနေရာမှာ ပေါ်လာပါမည်။</string>
+</resources>

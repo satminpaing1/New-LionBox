@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="key_console_eyebrow">VLESS CONNECTION CONTROL</string>
+    <string name="key_console_headline">Key ထည့်ပြီး ချိတ်ဆက်ပါ</string>
+    <string name="key_console_description">VLESS link ထည့်၊ profile ရွေးပြီး VPN ချိတ်ပါ။ Latency ကို တကယ့် connection စမ်းသပ်မှုကနေ ရယူပါတယ်။</string>
+    <string name="key_console_import">VLESS key ထည့်ရန်</string>
+    <string name="key_console_empty">Profile မရှိသေးပါ။ vless:// link ကို copy လုပ်ပြီး VLESS key ထည့်ရန် ကိုနှိပ်ပါ။</string>
+    <string name="key_console_connect">ချိတ်ဆက်ရန်</string>
+    <string name="key_console_disconnect">ဖြုတ်ရန်</string>
+    <string name="latency_test_fail">Latency မတိုင်းနိုင်ပါ</string>
+</resources>
