@@ -563,4 +563,9 @@
     <string name="sub_info_open_page">Mở trang thông tin đăng ký</string>
     <string name="sub_info_unlimited">Không giới hạn</string>
 
+    <string name="runtime_uptime_label">Thời gian kết nối</string>
+    <string name="runtime_download_label">Tải xuống</string>
+    <string name="runtime_upload_label">Tải lên</string>
+    <string name="runtime_network_label">Mạng</string>
+    <string name="runtime_exit_ip_label">IP đầu ra VPN</string>
 </resources>

@@ -563,4 +563,9 @@
     <string name="sub_info_open_page">打开订阅信息页面</string>
     <string name="sub_info_unlimited">无限制</string>
 
+    <string name="runtime_uptime_label">连接时长</string>
+    <string name="runtime_download_label">下载</string>
+    <string name="runtime_upload_label">上传</string>
+    <string name="runtime_network_label">网络</string>
+    <string name="runtime_exit_ip_label">VPN 出口 IP</string>
 </resources>

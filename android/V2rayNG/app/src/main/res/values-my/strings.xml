@@ -8,4 +8,9 @@
     <string name="key_console_connect">ချိတ်ဆက်ရန်</string>
     <string name="key_console_disconnect">ဖြုတ်ရန်</string>
     <string name="latency_test_fail">Latency မတိုင်းနိုင်ပါ</string>
+    <string name="runtime_uptime_label">ချိတ်ဆက်ထားချိန်</string>
+    <string name="runtime_download_label">ဒေါင်းလုဒ်</string>
+    <string name="runtime_upload_label">အပ်လုဒ်</string>
+    <string name="runtime_network_label">ကွန်ရက်</string>
+    <string name="runtime_exit_ip_label">VPN အထွက် IP</string>
 </resources>

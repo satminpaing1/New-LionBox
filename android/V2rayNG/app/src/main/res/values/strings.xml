@@ -585,4 +585,9 @@
     <string name="runtime_ip_loading">Checking VPN exit IP…</string>
     <string name="runtime_ip_error">Location unavailable</string>
     <string name="runtime_ip_privacy">IP location uses api.ip.sb through the VPN. Country is an IP-location estimate.</string>
+    <string name="runtime_uptime_label">Uptime</string>
+    <string name="runtime_download_label">Download</string>
+    <string name="runtime_upload_label">Upload</string>
+    <string name="runtime_network_label">Network</string>
+    <string name="runtime_exit_ip_label">VPN exit IP</string>
 </resources>

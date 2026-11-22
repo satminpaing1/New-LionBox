@@ -164,13 +164,13 @@ internal fun LionBoxConsole(
                                         }
                                     }
                                 }
-                                RuntimeStats(uiState)
                                 OutlinedButton(onClick = { onAction(if (uiState.isRunning) MainAction.TestCurrentServer else MainAction.TestRealAllServers) }, enabled = uiState.selectedGuid != null && !uiState.isTesting && !isLoading, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp), shape = RoundedCornerShape(14.dp)) {
                                     Text(stringResource(if (uiState.isTesting) R.string.connection_test_testing else R.string.connection_test_pending))
                                 }
                             }
                         }
                     }
+                    item(key = "runtime") { RuntimeStats(uiState) }
                 }
                 if (tab.canImport) {
                     item {

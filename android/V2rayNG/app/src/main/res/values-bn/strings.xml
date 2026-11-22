@@ -565,4 +565,9 @@
     <string name="sub_info_open_page">সাবস্ক্রিপশন তথ্যের পাতা খুলুন</string>
     <string name="sub_info_unlimited">সীমাহীন</string>
 
+    <string name="runtime_uptime_label">সংযোগের সময়</string>
+    <string name="runtime_download_label">ডাউনলোড</string>
+    <string name="runtime_upload_label">আপলোড</string>
+    <string name="runtime_network_label">নেটওয়ার্ক</string>
+    <string name="runtime_exit_ip_label">VPN বহির্গমন IP</string>
 </resources>

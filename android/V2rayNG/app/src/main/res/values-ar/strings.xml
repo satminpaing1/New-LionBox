@@ -573,4 +573,9 @@
     <string name="sub_info_open_page">فتح صفحة معلومات الاشتراك</string>
     <string name="sub_info_unlimited">غير محدود</string>
 
+    <string name="runtime_uptime_label">مدة الاتصال</string>
+    <string name="runtime_download_label">التنزيل</string>
+    <string name="runtime_upload_label">الرفع</string>
+    <string name="runtime_network_label">الشبكة</string>
+    <string name="runtime_exit_ip_label">عنوان IP لخروج VPN</string>
 </resources>
