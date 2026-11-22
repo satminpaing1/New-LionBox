@@ -55,7 +55,7 @@ object UpdateCheckerManager {
             return@withContext CheckUpdateResult(hasUpdate = false)
         }
 
-        val latestVersion = latestRelease.tagName.removePrefix("v")
+        val latestVersion = latestRelease.tagName.removePrefix("v").substringBefore('-')
         LogUtil.i(
             AppConfig.TAG,
             "Found new version: $latestVersion (current: ${BuildConfig.VERSION_NAME})"
@@ -80,8 +80,8 @@ object UpdateCheckerManager {
         val v2 = version2.split(".")
 
         for (i in 0 until maxOf(v1.size, v2.size)) {
-            val num1 = if (i < v1.size) v1[i].toInt() else 0
-            val num2 = if (i < v2.size) v2[i].toInt() else 0
+            val num1 = if (i < v1.size) v1[i].takeWhile { it.isDigit() }.toIntOrNull() ?: 0 else 0
+            val num2 = if (i < v2.size) v2[i].takeWhile { it.isDigit() }.toIntOrNull() ?: 0 else 0
             if (num1 != num2) return num1 - num2
         }
         return 0
