@@ -245,6 +245,15 @@ main { flex: 1; padding: 18px 18px 110px; }
 }
 .server-icon svg { width: .8em; height: .8em; }
 .server-card .info { flex: 1; min-width: 0; }
+.select-server { padding: 8px 0; min-height: 44px; border: 0; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.server-card[data-selected="true"] { border-color: var(--accent); }
+.preview-note { margin: 14px 0 0; color: var(--muted); font-size: .76rem; }
+.input-label { display: block; margin-top: 14px; font-size: .82rem; color: var(--heading); }
+.btn:disabled { opacity: .65; cursor: wait; }
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.status-server strong, .toast, .log-row div { overflow-wrap: anywhere; }
+.toast { width: max-content; max-width: calc(100% - 32px); }
+[hidden] { display: none !important; }
 .server-card .info strong { display: block; font-size: .74rem; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .server-card .info .muted { display: block; font-size: .6rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .server-card .del {
