@@ -1,7 +1,7 @@
 {
   "name": "lionbox-desktop",
   "productName": "LionBox",
-  "version": "2.3.15.11",
+  "version": "2.3.15.12",
   "description": "LionBox desktop client for Windows and macOS — VLESS & Shadowsocks over xray-core",
   "repository": {
     "type": "git",
