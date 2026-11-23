@@ -6,6 +6,20 @@ import org.junit.jupiter.api.Test
 
 class LionBoxConsoleTest {
     @Test
+    fun `dashboard protocol omits transport and security details`() {
+        val profile = com.v2ray.ang.dto.entities.ProfileItem(
+            configType = com.v2ray.ang.enums.EConfigType.VLESS,
+            network = "ws",
+            security = "tls",
+        )
+        assertEquals("VLESS", dashboardProtocol(profile))
+        assertEquals("—", dashboardProtocol(null))
+        com.v2ray.ang.enums.EConfigType.entries.forEach { type ->
+            assertEquals(type.name, dashboardProtocol(profile.copy(configType = type)))
+        }
+    }
+
+    @Test
     fun `server addresses in visible names are masked without changing descriptive text`() {
         assertEquals("Singapore ******", maskServerAddress("Singapore vpn.example.com", "vpn.example.com"))
         assertEquals("******", maskServerAddress("VPN.EXAMPLE.COM", "vpn.example.com"))

@@ -5,8 +5,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,7 +36,7 @@ internal fun RuntimeStats(ui: MainUiState, selected: ServerRowUiModel?) {
     val colors = MaterialTheme.colorScheme
     val unavailable = stringResource(R.string.runtime_unavailable)
     val uptime = if (ui.isRunning && stats != null) formatUptime(stats.uptimeSeconds) else unavailable
-    val protocol = selected?.typeDescription ?: "—"
+    val protocol = dashboardProtocol(selected?.profile)
     val delay = dashboardLatencyMillis(ui.status, ui.isRunning, selected?.testDelayMillis)
     val latency = when {
         ui.isTesting -> stringResource(R.string.connection_test_testing)
@@ -83,9 +86,9 @@ internal fun RuntimeStats(ui: MainUiState, selected: ServerRowUiModel?) {
                         RuntimeMetric(stringResource(R.string.runtime_uptime_label), uptime, colors.primaryContainer, colors.onPrimaryContainer, Modifier.weight(1f))
                         RuntimeMetric(stringResource(R.string.lion_latency), latency, colors.tertiaryContainer, colors.onTertiaryContainer, Modifier.weight(1f), valueColor = if (delay != null && delay < 0) colors.error else colors.primary)
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        RuntimeMetric(stringResource(R.string.lion_protocol), protocol, colors.secondaryContainer, colors.onSecondaryContainer, Modifier.weight(1f))
-                        RuntimeMetric(stringResource(R.string.runtime_network_label), network, colors.tertiaryContainer, colors.onTertiaryContainer, Modifier.weight(1f))
+                    Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        RuntimeMetric(stringResource(R.string.lion_protocol), protocol, colors.secondaryContainer, colors.onSecondaryContainer, Modifier.weight(1f).fillMaxHeight())
+                        RuntimeMetric(stringResource(R.string.runtime_network_label), network, colors.tertiaryContainer, colors.onTertiaryContainer, Modifier.weight(1f).fillMaxHeight())
                     }
                 }
             }

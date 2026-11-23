@@ -2,7 +2,7 @@ package com.v2ray.ang.ui.compose
 
 import android.app.Activity
 import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -35,32 +35,36 @@ object AmbientTokens {
     val lavender = Color(0xFFE0DAF5)
     val mint = Color(0xFFD6EEE4)
     val grid = Color(0xFF64748B)
+    val darkBlush = Color(0xFF644454)
+    val darkLavender = Color(0xFF494B78)
+    val darkMint = Color(0xFF2B625A)
+    val darkGrid = Color(0xFFBAC6D8)
     val connected = Color(0xFF23836A)
 }
 
 fun Modifier.ambientBackground(darkTheme: Boolean, background: Color): Modifier =
     this.then(Modifier.drawWithCache {
         val radius = size.maxDimension * 0.75f
+        val glowAlpha = if (darkTheme) 0.2f else 0.65f
+        val gridColor = if (darkTheme) AmbientTokens.darkGrid else AmbientTokens.grid
         val glows = listOf(
-            AmbientTokens.blush to androidx.compose.ui.geometry.Offset(size.width * 0.05f, size.height * 0.12f),
-            AmbientTokens.lavender to androidx.compose.ui.geometry.Offset(size.width * 0.95f, size.height * 0.38f),
-            AmbientTokens.mint to androidx.compose.ui.geometry.Offset(size.width * 0.25f, size.height * 0.9f)
-        ).map { (color, center) -> androidx.compose.ui.graphics.Brush.radialGradient(listOf(color.copy(alpha = 0.65f), color.copy(alpha = 0f)), center, radius) }
+            (if (darkTheme) AmbientTokens.darkBlush else AmbientTokens.blush) to androidx.compose.ui.geometry.Offset(size.width * 0.05f, size.height * 0.12f),
+            (if (darkTheme) AmbientTokens.darkLavender else AmbientTokens.lavender) to androidx.compose.ui.geometry.Offset(size.width * 0.95f, size.height * 0.38f),
+            (if (darkTheme) AmbientTokens.darkMint else AmbientTokens.mint) to androidx.compose.ui.geometry.Offset(size.width * 0.25f, size.height * 0.9f)
+        ).map { (color, center) -> androidx.compose.ui.graphics.Brush.radialGradient(listOf(color.copy(alpha = glowAlpha), color.copy(alpha = 0f)), center, radius) }
         onDrawBehind {
             drawRect(if (darkTheme) background else AmbientTokens.base)
-            if (!darkTheme) {
-                glows.forEach { drawRect(it) }
-                val step = 32.dp.toPx()
-                var x = 0f
-                while (x < size.width) {
-                    drawLine(AmbientTokens.grid.copy(alpha = 0.045f), androidx.compose.ui.geometry.Offset(x, 0f), androidx.compose.ui.geometry.Offset(x, size.height), strokeWidth = 1.dp.toPx())
-                    x += step
-                }
-                var y = 0f
-                while (y < size.height) {
-                    drawLine(AmbientTokens.grid.copy(alpha = 0.045f), androidx.compose.ui.geometry.Offset(0f, y), androidx.compose.ui.geometry.Offset(size.width, y), strokeWidth = 1.dp.toPx())
-                    y += step
-                }
+            glows.forEach { drawRect(it) }
+            val step = 32.dp.toPx()
+            var x = 0f
+            while (x < size.width) {
+                drawLine(gridColor.copy(alpha = 0.045f), androidx.compose.ui.geometry.Offset(x, 0f), androidx.compose.ui.geometry.Offset(x, size.height), strokeWidth = 1.dp.toPx())
+                x += step
+            }
+            var y = 0f
+            while (y < size.height) {
+                drawLine(gridColor.copy(alpha = 0.045f), androidx.compose.ui.geometry.Offset(0f, y), androidx.compose.ui.geometry.Offset(size.width, y), strokeWidth = 1.dp.toPx())
+                y += step
             }
         }
     })
@@ -95,17 +99,17 @@ private val LightColor = lightColorScheme(
 )
 
 object KeyConsoleTokens {
-    val background = Color(0xFF14100A)
-    val surface = Color(0xFF211A10)
-    val raised = Color(0xFF302516)
-    val text = Color(0xFFF5EFE3)
-    val muted = Color(0xFFC3B69F)
-    val accent = Color(0xFFF0A22E)
-    val teal = Color(0xFFE2BD78)
-    val violet = Color(0xFFFFD79A)
-    val tealSurface = Color(0xFF342812)
-    val violetSurface = Color(0xFF3A2B17)
-    val border = Color(0xFF58452A)
+    val background = Color(0xFF11151D)
+    val surface = Color(0xFF1B222E)
+    val raised = Color(0xFF283343)
+    val text = Color(0xFFEDF2FA)
+    val muted = Color(0xFFB4C0D2)
+    val accent = Color(0xFFACCDFB)
+    val teal = Color(0xFFA1DCCD)
+    val violet = Color(0xFFD1C1EB)
+    val tealSurface = Color(0xFF203F39)
+    val violetSurface = Color(0xFF373046)
+    val border = Color(0xFF465469)
     val radius = androidx.compose.ui.unit.Dp(14f)
     val space = androidx.compose.ui.unit.Dp(8f)
 }
@@ -160,7 +164,7 @@ val toastTextColor = Color.White // White
 
 object ThemeManager {
     private val _themeMode = MutableStateFlow(
-        MmkvManager.decodeSettingsString(AppConfig.PREF_UI_MODE_NIGHT, "2") ?: "2"
+        explicitThemeMode(MmkvManager.decodeSettingsString(AppConfig.PREF_UI_MODE_NIGHT))
     )
     val themeMode: StateFlow<String> = _themeMode.asStateFlow()
 
@@ -170,8 +174,10 @@ object ThemeManager {
     val dynamicColorEnabled: StateFlow<Boolean> = _dynamicColorEnabled.asStateFlow()
 
     fun setThemeMode(mode: String) {
-        MmkvManager.encodeSettings(AppConfig.PREF_UI_MODE_NIGHT, mode)
-        _themeMode.value = mode
+        val explicitMode = explicitThemeMode(mode)
+        MmkvManager.encodeSettings(AppConfig.PREF_UI_MODE_NIGHT, explicitMode)
+        _themeMode.value = explicitMode
+        applyNightMode(explicitMode)
     }
 
     fun setDynamicColorEnabled(enabled: Boolean) {
@@ -180,21 +186,23 @@ object ThemeManager {
     }
 
     fun refresh() {
-        _themeMode.value =
-            MmkvManager.decodeSettingsString(AppConfig.PREF_UI_MODE_NIGHT, "2") ?: "2"
+        _themeMode.value = explicitThemeMode(MmkvManager.decodeSettingsString(AppConfig.PREF_UI_MODE_NIGHT))
+        applyNightMode(_themeMode.value)
         _dynamicColorEnabled.value =
             MmkvManager.decodeSettingsBool(AppConfig.PREF_DYNAMIC_COLOR, false)
+    }
+
+    private fun applyNightMode(mode: String) {
+        AppCompatDelegate.setDefaultNightMode(
+            if (isExplicitDarkTheme(mode)) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
+        )
     }
 }
 
 @Composable
 fun resolveDarkTheme(): Boolean {
     val mode by ThemeManager.themeMode.collectAsState()
-    return when (mode) {
-        "1" -> false
-        "2" -> true
-        else -> isSystemInDarkTheme()
-    }
+    return isExplicitDarkTheme(mode)
 }
 
 val LocalDarkTheme = compositionLocalOf { false }

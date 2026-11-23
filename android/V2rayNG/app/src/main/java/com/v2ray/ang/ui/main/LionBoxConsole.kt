@@ -292,31 +292,34 @@ private fun LionPowerButton(isRunning: Boolean, enabled: Boolean, onClick: () ->
     LaunchedEffect(isRunning) {
         wave.snapTo(0f)
         if (isRunning && android.animation.ValueAnimator.areAnimatorsEnabled()) {
-            repeat(4) {
+            while (isRunning) {
                 wave.snapTo(0f)
                 wave.animateTo(1f, androidx.compose.animation.core.tween(1800, easing = androidx.compose.animation.core.LinearEasing))
             }
         }
     }
-    Box(Modifier.size(164.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(188.dp), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val radius = size.minDimension / 2
-            drawCircle(androidx.compose.ui.graphics.Brush.radialGradient(listOf(accent.copy(alpha = 0.24f), accent.copy(alpha = 0f)), radius = radius))
+            drawCircle(androidx.compose.ui.graphics.Brush.radialGradient(listOf(accent.copy(alpha = if (isRunning) 0.65f else 0.24f), accent.copy(alpha = 0f)), radius = radius))
             if (isRunning) {
-                drawCircle(accent.copy(alpha = 0.2f * (1f - wave.value)), radius * (0.72f + 0.26f * wave.value), style = Stroke(2.dp.toPx()))
+                repeat(2) { index ->
+                    val progress = (wave.value + index * 0.5f) % 1f
+                    drawCircle(accent.copy(alpha = 0.6f * (1f - progress)), radius * (0.74f + 0.24f * progress), style = Stroke(3.dp.toPx()))
+                }
                 repeat(12) { index ->
                     val angle = index * Math.PI / 6
-                    val start = radius * (0.76f + wave.value * 0.08f)
-                    val end = radius * (0.86f + wave.value * 0.12f)
-                    drawLine(accent.copy(alpha = 0.16f * (1f - wave.value)), center + Offset((kotlin.math.cos(angle) * start).toFloat(), (kotlin.math.sin(angle) * start).toFloat()), center + Offset((kotlin.math.cos(angle) * end).toFloat(), (kotlin.math.sin(angle) * end).toFloat()), strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
+                    val start = radius * (0.76f + wave.value * 0.04f)
+                    val end = radius * (0.94f + wave.value * 0.04f)
+                    drawLine(accent.copy(alpha = 0.65f - 0.25f * wave.value), center + Offset((kotlin.math.cos(angle) * start).toFloat(), (kotlin.math.sin(angle) * start).toFloat()), center + Offset((kotlin.math.cos(angle) * end).toFloat(), (kotlin.math.sin(angle) * end).toFloat()), strokeWidth = 3.dp.toPx(), cap = StrokeCap.Round)
                 }
             }
         }
         Surface(onClick = onClick, enabled = enabled, shape = CircleShape,
-            color = if (isRunning) accent else colors.primaryContainer,
+            color = if (isRunning) Color(0xFFA7F3C0) else colors.primaryContainer,
             border = BorderStroke(2.dp, if (enabled) accent else colors.outlineVariant),
             modifier = Modifier.size(136.dp).semantics { contentDescription = label; stateDescription = label }) {
-            val symbol = if (isRunning) Color.White else if (enabled) accent else colors.onSurfaceVariant
+            val symbol = if (isRunning) Color(0xFF143C2A) else if (enabled) accent else colors.onSurfaceVariant
             Box(contentAlignment = Alignment.Center) {
                 Canvas(Modifier.size(48.dp)) {
                     val stroke = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round)
