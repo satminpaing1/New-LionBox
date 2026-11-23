@@ -12,7 +12,7 @@
   --on-accent: #241605;
   --ember: #FF8A3C;
   --ember-soft: rgba(255, 138, 60, .12);
-  --ok: var(--accent);
+  --ok: #23836a;
   --radius: 14px;
   --radius-lg: 22px;
   --shadow: 0 8px 30px rgba(0, 0, 0, .5);
@@ -426,6 +426,35 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
   border: 1px solid var(--accent);
   border-radius: 999px; font-size: .86rem; font-weight: 600;
   box-shadow: var(--shadow);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f8f9fb;
+    --stage: #f8f9fb;
+    --surface: #f5f7fbd9;
+    --surface-2: #eae7f4;
+    --text: #263447;
+    --heading: #263447;
+    --muted: #526174;
+    --line: #ccd7e3;
+    --accent: #365f9c;
+    --accent-2: #28685d;
+    --ember: #66568a;
+    --amber: #365f9c;
+    --ambient-mesh: radial-gradient(ellipse at 5% 12%, #f4d6e2a6, transparent 65%), radial-gradient(ellipse at 95% 38%, #e0daf5a6, transparent 65%), radial-gradient(ellipse at 25% 90%, #d6eee4a6, transparent 65%);
+    --ambient-grid: linear-gradient(#64748b0b 1px, transparent 1px), linear-gradient(90deg, #64748b0b 1px, transparent 1px);
+  }
+  .stage, .phone {
+    background-color: var(--bg);
+    background-image: var(--ambient-grid), var(--ambient-mesh);
+    background-size: 32px 32px, 32px 32px, auto, auto, auto;
+  }
+  .appbar, .bottom-nav { background: #f8f9fbdd; backdrop-filter: blur(16px); }
+  .status-card { background: linear-gradient(145deg, #ffffffe0, #e9e2f5a0, #dcefe7a0); }
+  .stat-chip, .server-card, .empty-state { background: var(--surface); }
+  .stat-icon { background: #365f9c14; }
+  .connect-button { background: linear-gradient(145deg, #f5f8fd, #dcefe7); }
 }
 
 @media (max-width: 360px) {
