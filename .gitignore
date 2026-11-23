@@ -8,7 +8,4 @@ android/V2rayNG/**/build/
 android/V2rayNG/app/libs/*.aar
 android/V2rayNG/app/src/main/jniLibs/
 android/**/*.zip
-desktop/node_modules/
-desktop/core/
-desktop/dist/
 public/vela-android.apk
