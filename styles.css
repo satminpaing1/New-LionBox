@@ -93,7 +93,8 @@ svg { width: 1.2em; height: 1.2em; vertical-align: -0.22em; }
 .server-card:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ---- main ---- */
-main { flex: 1; padding: 18px 18px 110px; }
+main { flex: 1; padding: 18px 18px 110px; transition: padding-bottom .2s ease-out; }
+main.toast-shown { padding-bottom: 200px; }
 .page { animation: fade .22s var(--ease); }
 @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {

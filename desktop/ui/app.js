@@ -33,8 +33,12 @@
     const t = $('toast');
     t.textContent = msg;
     t.hidden = false;
+    document.getElementById('main').classList.add('toast-shown');
     clearTimeout(t._timer);
-    t._timer = setTimeout(() => { t.hidden = true; }, 4000);
+    t._timer = setTimeout(() => {
+      t.hidden = true;
+      document.getElementById('main').classList.remove('toast-shown');
+    }, 4000);
   }
 
   function readStore(key) {
