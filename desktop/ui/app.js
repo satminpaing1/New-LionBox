@@ -21,6 +21,24 @@
   let desktopState = 'off';
   let currentPage = 'dashboard';
   let selectedRaw = null;
+  const engine = window.lionbox;
+  const latencies = new Map();
+
+  try {
+    const saved = localStorage.getItem('lionbox.selected');
+    if (saved) selectedRaw = saved;
+  } catch (e) { /* ignore */ }
+
+  setInterval(() => {
+    if (desktopState !== 'connected') return;
+    window.lionbox.status().then(s => {
+      if (s.state !== 'connected' || !s.startedAt) return;
+      const secs = Math.max(0, Math.floor((Date.now() - s.startedAt) / 1000));
+      const mm = String(Math.floor(secs / 60)).padStart(2, '0');
+      const ss = String(secs % 60).padStart(2, '0');
+      $('stat-time').textContent = mm + ':' + ss;
+    }).catch(() => {});
+  }, 1000);
 
   function renderIcons(root = document) {
     root.querySelectorAll('[data-icon]').forEach(el => {
@@ -121,6 +139,11 @@
     $('status-proto').textContent = p ? p.protocol || 'VLESS' : 'VLESS';
   }
 
+  function formatLatency(ms) {
+    if (ms == null) return '—';
+    return ms + ' ms';
+  }
+
   function serverCard(p) {
     const div = document.createElement('div');
     div.className = 'server-card';
@@ -128,8 +151,27 @@
     div.dataset.selected = selected;
     div.innerHTML = '<span class="server-icon"><span data-icon="lion"></span></span>' +
       '<button class="info select-server" aria-pressed="' + selected + '"><strong>' + escapeHtml(displayName(p)) + '</strong><span class="muted">' + escapeHtml(p.protocol || 'VLESS') + ' · ****** · ' + escapeHtml(p.security.toUpperCase()) + '</span></button>' +
+      (engine ? '<button class="ping" aria-label="Latency စစ်မည်" data-raw="' + escapeHtml(p.raw) + '"><span class="ping-value">' + formatLatency(latencies.get(p.raw)) + '</span><span data-icon="activity"></span></button>' : '') +
       '<button class="del" aria-label="Server ဖျက်မည်"><span data-icon="trash"></span></button>';
-    div.querySelector('.select-server').addEventListener('click', () => { selectedRaw = p.raw; renderAll(); });
+    div.querySelector('.select-server').addEventListener('click', () => {
+      selectedRaw = p.raw;
+      try { localStorage.setItem('lionbox.selected', p.raw); } catch (e) { /* ignore */ }
+      renderAll();
+    });
+    const pingButton = div.querySelector('.ping');
+    if (pingButton) pingButton.addEventListener('click', async () => {
+      pingButton.disabled = true;
+      pingButton.querySelector('.ping-value').textContent = '…';
+      try {
+        const result = await engine.ping(p);
+        latencies.set(p.raw, result.ok ? result.ms : null);
+        if (!result.ok) toast('Latency စစ်မထားနိုင်ပါ: ' + (result.error || 'error'));
+      } catch (e) {
+        latencies.set(p.raw, null);
+        toast('Latency စစ်မထားနိုင်ပါ');
+      }
+      renderAll();
+    });
     div.querySelector('.del').addEventListener('click', () => removeProfile(p));
     renderIcons(div);
     return div;
@@ -243,12 +285,7 @@
     if (!profiles.length) { openImport(); return; }
     const desktop = window.lionbox;
     const p = selectedProfile();
-    if (!desktop) {
-      $('status-label').textContent = 'Android app လိုအပ်ပါသည်';
-      $('status-latency').textContent = 'Latency — (Android app တွင် စစ်ပါ)';
-      toast('VPN ချိတ်ဆက်ရန် LionBox APK ကို Android ဖုန်းတွင် အသုံးပြုပါ။');
-      return;
-    }
+    if (!desktop) { toast('Desktop engine ကို မတွေ့ပါ။ App ကို ပြန်ဖွင့်ပါ။'); return; }
     const button = $('connect-button');
     try {
       if (desktopState === 'connected' || desktopState === 'connecting') {
@@ -273,12 +310,15 @@
     if (s.state === 'connected') {
       label.textContent = 'ချိတ်ဆက်ထားသည် — ' + (s.server || '');
       latency.textContent = 'SOCKS 127.0.0.1:' + s.socksPort + ' · system proxy ဖွင့်ထားသည်';
+      $('stat-proxy').textContent = 'SOCKS 127.0.0.1:' + s.socksPort;
     } else if (s.state === 'connecting') {
       label.textContent = 'ချိတ်ဆက်နေသည်…';
       latency.textContent = '—';
+      $('stat-proxy').textContent = 'ချိတ်ဆက်နေသည်…';
     } else {
       label.textContent = s.error ? 'ချိတ်ဆက်မထားပါ (' + s.error + ')' : 'ချိတ်ဆက်မထားပါ';
       latency.textContent = '—';
+      $('stat-proxy').textContent = 'ချိတ်ဆက်မထားပါ';
     }
   }
 

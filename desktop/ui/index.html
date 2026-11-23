@@ -11,31 +11,25 @@
 <header class="appbar">
 <img class="appbar-icon" src="icons/lionbox-vpn.svg" alt="LionBox" width="34" height="34">
 <div class="appbar-title"><strong>LionBox</strong><span>VLESS · Shadowsocks</span></div>
-<a class="icon-btn" id="download-apk" href="https://github.com/satminpaing1/New-LionBox/releases/latest" download aria-label="LionBox APK ဒေါင်းလုဒ်"><span data-icon="download"></span></a>
 </header>
 <main id="main">
 <section class="page" id="page-dashboard">
 <div class="hero">
 <span class="eyebrow">LionBox · Shadowsocks &amp; VLESS</span>
 <h1>ခြင်္သေ့နွယ်ဝါ တစ်ကြည့်နဲ့ ချိတ်ဆက်ပြီးပြီ</h1>
-<p>Shadowsocks config နဲ့ VLESS key တွေကို paste လုပ်ပြီး server profile သိမ်းပါ။ Latency စစ်ခြင်းနဲ့ VPN ချိတ်ဆက်ခြင်းကို Android app ထဲမှာ အသုံးပြုပါ။</p>
+<p>VLESS key နဲ့ Shadowsocks config ကို paste လုပ်ပြီး server ရွေးကာ ချိတ်ဆက်ပါ။ ချိတ်ဆက်လိုက်တာနဲ့ system proxy ကို အလိုအလျောက် ပြောင်းပေးပါမယ်။</p>
 </div>
 <div class="status-card" data-state="off">
 <div class="status-head"><span class="status-dot" aria-hidden="true"></span><span id="status-label" role="status">မချိတ်ရသေးပါ</span><span class="status-pill" id="status-proto">VLESS</span></div>
-<div class="power-wrap"><button id="connect-button" class="power-button" aria-label="VPN ချိတ်ဆက်ရန်" aria-describedby="preview-note"><span data-icon="power"></span></button></div>
+<div class="power-wrap"><button id="connect-button" class="power-button" aria-label="VPN ချိတ်ဆက်ရန်"><span data-icon="power"></span></button></div>
 <div class="status-server"><span class="muted">Server</span><strong id="status-server">Server ရွေးပါ</strong><span class="muted" id="status-latency">Latency —</span></div>
-<p class="preview-note" id="preview-note">Web profile manager · VPN နဲ့ latency အတွက် Android APK လိုအပ်ပါသည်။</p>
 </div>
 <div class="quick-row">
-<div class="quick-card"><span data-icon="activity"></span><div><small>ဒါတာ</small><strong id="stat-traffic">—</strong></div></div>
+<div class="quick-card"><span data-icon="activity"></span><div><small>System proxy</small><strong id="stat-proxy">ချိတ်ဆက်မထားပါ</strong></div></div>
 <div class="quick-card"><span data-icon="clock"></span><div><small>ချိတ်ဆက်ချိန်</small><strong id="stat-time">—</strong></div></div>
 </div>
 <div class="section-head"><h2>ချိတ်ဆက်မည့် server</h2><button class="text-btn" id="view-all">အားလုံး</button></div>
 <div id="dashboard-servers" class="server-list"></div>
-<a class="apk-banner" id="download-banner" href="https://github.com/satminpaing1/New-LionBox/releases/latest" download>
-<img src="icons/lionbox-vpn.svg" alt="" width="40" height="40">
-<div><strong>LionBox APK ဒေါင်းလုဒ်</strong><span>Android အတွက် native VPN app</span></div><span data-icon="download"></span>
-</a>
 </section>
 <section class="page" id="page-servers" hidden>
 <div class="section-head"><h2>Server profiles <span class="count-pill" id="server-count">0</span></h2></div>
@@ -50,8 +44,7 @@
 <div class="settings-list">
 <label class="setting-row"><div><strong>ဖျက်မည့်အခါ အတည်ပြုမည်</strong><p class="muted">Server ဖျက်မှားခြင်း ကာကွယ်မည်</p></div><input type="checkbox" id="confirm-delete" checked></label>
 <div class="setting-row"><div><strong>Profiles export လုပ်မည်</strong><p class="muted">VLESS / Shadowsocks config များကို text file အဖြစ် ရယူမည်</p></div><button class="btn ghost" id="export-all"><span data-icon="download"></span>Export</button></div>
-<div class="setting-row"><div><strong>LionBox APK</strong><p class="muted">Android အတွက် native client</p></div><a class="btn ghost" href="https://github.com/satminpaing1/New-LionBox/releases/latest" download id="download-apk-settings"><span data-icon="download"></span>APK</a></div>
-<div class="setting-row"><div><strong>Key သိမ်းဆည်းမှု</strong><p class="muted">ဤ browser ထဲတွင်သာ local storage ဖြင့် သိမ်းမည်</p></div><span class="tag">On-device</span></div>
+<div class="setting-row"><div><strong>Key သိမ်းဆည်းမှု</strong><p class="muted">ဤ computer ထဲတွင်သာ local storage ဖြင့် သိမ်းမည်</p></div><span class="tag">On-device</span></div>
 </div>
 </section>
 </main>
@@ -69,7 +62,7 @@
 <p class="muted">VLESS / ss:// key တစ်ကြောင်းစီ သို့မဟုတ် Shadowsocks JSON config ကို paste လုပ်ပါ။</p>
 <label class="input-label" for="vless-input">VLESS / Shadowsocks config</label>
 <textarea id="vless-input" rows="5" placeholder="vless://uuid@server:443?security=tls#My%20server" required spellcheck="false" aria-describedby="import-error"></textarea>
-<p class="form-hint">Key များကို ဤ browser ထဲတွင်သာ သိမ်းဆည်းမည်။</p><p id="import-error" class="error" role="alert"></p>
+<p class="form-hint">Key များကို ဤ computer ထဲတွင်သာ သိမ်းဆည်းမည်။</p><p id="import-error" class="error" role="alert"></p>
 <div class="dialog-actions"><button type="button" class="btn ghost close-dialog">မလုပ်တော့</button><button type="submit" class="btn primary" id="import-submit">Import</button></div>
 </form>
 </dialog>

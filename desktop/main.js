@@ -3,6 +3,7 @@
 const { app, BrowserWindow, ipcMain, nativeTheme, shell, Menu, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const net = require('net');
 
 const { Connection } = require('./bridge');
 
@@ -147,6 +148,28 @@ ipcMain.handle('lionbox:status', () => ({
   error: connection.error || null
 }));
 ipcMain.handle('lionbox:platform', () => ({ platform: process.platform, version: app.getVersion() }));
+// Real latency: measure a TCP connect to the server address, the same
+// handshake xray will do when the tunnel opens.
+ipcMain.handle('lionbox:ping', (_e, profile) => new Promise((resolve) => {
+  const port = Number(profile && profile.port);
+  if (!profile || !profile.address || !Number.isInteger(port) || port < 1 || port > 65535) {
+    resolve({ ok: false, ms: null, error: 'invalid profile' });
+    return;
+  }
+  const started = Date.now();
+  const sock = net.connect({ host: profile.address, port });
+  let settled = false;
+  const done = (result) => {
+    if (settled) return;
+    settled = true;
+    sock.destroy();
+    resolve(result);
+  };
+  sock.setTimeout(5000);
+  sock.on('connect', () => done({ ok: true, ms: Date.now() - started, error: null }));
+  sock.on('timeout', () => done({ ok: false, ms: null, error: 'timeout' }));
+  sock.on('error', (err) => done({ ok: false, ms: null, error: err.code || String(err) }));
+}));
 
 app.whenReady().then(() => { buildMenu(); createWindow(); });
 app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });

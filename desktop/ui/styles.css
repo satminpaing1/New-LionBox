@@ -462,3 +462,59 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
   main { padding: 14px 12px 110px; }
   .quick-row { grid-template-columns: 1fr; }
 }
+
+/* ---- desktop window layout (Electron, wide windows) ---- */
+.ping {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: transparent; color: var(--muted);
+  font: inherit; font-size: .78rem; cursor: pointer;
+  padding: 6px 10px; min-height: 44px;
+  transition: border-color .15s var(--ease), color .15s var(--ease);
+}
+.ping:hover { border-color: var(--accent); color: var(--text); }
+.ping:disabled { opacity: .6; cursor: default; }
+.ping-value { font-variant-numeric: tabular-nums; min-width: 3.2em; text-align: right; }
+
+@media (min-width: 760px) {
+  .phone {
+    max-width: none;
+    width: 100%;
+    flex-direction: row;
+    border: 0;
+    background: transparent;
+  }
+  .appbar { display: none; }
+  main {
+    flex: 1;
+    margin: 0;
+    padding: 28px clamp(24px, 5vw, 56px) 48px;
+    overflow-y: auto;
+  }
+  .hero h1 { font-size: clamp(1.9rem, 3vw, 2.6rem); }
+  .power-button { width: 130px; height: 130px; }
+  .quick-row { display: grid; grid-template-columns: repeat(2, minmax(180px, 260px)); gap: 14px; }
+  .server-list { max-width: 720px; }
+  .bottom-nav {
+    position: static;
+    transform: none;
+    width: 210px;
+    max-width: none;
+    height: 100vh;
+    grid-template-columns: 1fr;
+    align-content: start;
+    gap: 4px;
+    padding: 20px 12px;
+    border-top: 0;
+    border-right: 1px solid var(--line);
+    background: rgba(12, 9, 5, .6);
+  }
+  .nav-item {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+  }
+  .nav-item span:last-child { font-size: .92rem; font-weight: 600; }
+}
