@@ -18,6 +18,7 @@
   const $ = id => document.getElementById(id);
   const STORE_KEY = 'lionbox.profiles';
   const LOG_KEY = 'lionbox.activity';
+  let desktopState = 'off';
   let currentPage = 'dashboard';
   let selectedRaw = null;
 
@@ -234,12 +235,53 @@
     }
   });
 
-  $('connect-button').addEventListener('click', () => {
+  $('connect-button').addEventListener('click', async () => {
     if (!profiles.length) { openImport(); return; }
-    $('status-label').textContent = 'Android app လိုအပ်ပါသည်';
-    $('status-latency').textContent = 'Latency — (Android app တွင် စစ်ပါ)';
-    toast('VPN ချိတ်ဆက်ရန် LionBox APK ကို Android ဖုန်းတွင် အသုံးပြုပါ။');
+    const desktop = window.lionbox;
+    const p = selectedProfile();
+    if (!desktop) {
+      $('status-label').textContent = 'Android app လိုအပ်ပါသည်';
+      $('status-latency').textContent = 'Latency — (Android app တွင် စစ်ပါ)';
+      toast('VPN ချိတ်ဆက်ရန် LionBox APK ကို Android ဖုန်းတွင် အသုံးပြုပါ။');
+      return;
+    }
+    const button = $('connect-button');
+    try {
+      if (desktopState === 'connected' || desktopState === 'connecting') {
+        await desktop.disconnect();
+      } else {
+        button.disabled = true;
+        $('status-label').textContent = 'ချိတ်ဆက်နေသည်…';
+        await desktop.connect(p);
+      }
+    } catch (e) {
+      toast('ချိတ်ဆက်မှု မအောင်မြင်ပါ: ' + (e.message || e));
+      $('status-label').textContent = 'ချိတ်ဆက်မထားပါ';
+    } finally {
+      button.disabled = false;
+    }
   });
+
+  function renderDesktopStatus(s) {
+    desktopState = s.state;
+    const label = $('status-label');
+    const latency = $('status-latency');
+    if (s.state === 'connected') {
+      label.textContent = 'ချိတ်ဆက်ထားသည် — ' + (s.server || '');
+      latency.textContent = 'SOCKS 127.0.0.1:' + s.socksPort + ' · system proxy ဖွင့်ထားသည်';
+    } else if (s.state === 'connecting') {
+      label.textContent = 'ချိတ်ဆက်နေသည်…';
+      latency.textContent = '—';
+    } else {
+      label.textContent = s.error ? 'ချိတ်ဆက်မထားပါ (' + s.error + ')' : 'ချိတ်ဆက်မထားပါ';
+      latency.textContent = '—';
+    }
+  }
+
+  if (window.lionbox) {
+    window.lionbox.onState(renderDesktopStatus);
+    window.lionbox.status().then(renderDesktopStatus).catch(() => {});
+  }
   document.querySelectorAll('.nav-item').forEach(b => b.addEventListener('click', () => showPage(b.dataset.page)));
   $('view-all').addEventListener('click', () => showPage('servers'));
   $('search').addEventListener('input', renderAll);
