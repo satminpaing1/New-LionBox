@@ -26,6 +26,6 @@ execFileSync('curl', ['-fL', '-o', zipPath, url], { stdio: 'inherit' });
 const members = ['xray', 'xray.exe', 'geoip.dat', 'geosite.dat'];
 const list = execFileSync('unzip', ['-Z1', zipPath], { cwd: outDir, encoding: 'utf8' }).split(/\r?\n/);
 execFileSync('unzip', ['-o', zipPath, ...members.filter((m) => list.includes(m))], { cwd: outDir, stdio: 'inherit' });
-fs.chmodSync(path.join(outDir, 'xray'), 0o755);
+if (fs.existsSync(path.join(outDir, 'xray'))) fs.chmodSync(path.join(outDir, 'xray'), 0o755);
 fs.rmSync(zipPath);
 console.log('xray-core ' + VERSION + ' ready in ' + outDir);
