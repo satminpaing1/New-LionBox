@@ -1,8 +1,8 @@
 {
   "name": "lionbox-desktop",
   "productName": "LionBox",
-  "version": "2.3.15.12",
-  "description": "LionBox desktop client for Windows and macOS — VLESS & Shadowsocks over xray-core",
+  "version": "2.3.15.13",
+  "description": "LionBox desktop client for Windows and macOS \u2014 VLESS & Shadowsocks over xray-core",
   "repository": {
     "type": "git",
     "url": "https://github.com/satminpaing1/New-LionBox.git"
@@ -22,14 +22,28 @@
   "build": {
     "appId": "com.lionbox.desktop",
     "productName": "LionBox",
-    "files": ["main.js", "preload.js", "bridge.js", "xray-config.js", "fetch-core.js", "package.json", "ui/**/*"],
-    "extraResources": ["core/"],
+    "files": [
+      "main.js",
+      "preload.js",
+      "bridge.js",
+      "xray-config.js",
+      "fetch-core.js",
+      "package.json",
+      "ui/**/*"
+    ],
+    "extraResources": [
+      "core/"
+    ],
     "win": {
-      "target": ["nsis"],
+      "target": [
+        "nsis"
+      ],
       "icon": "build/icon.png"
     },
     "mac": {
-      "target": ["dmg"],
+      "target": [
+        "dmg"
+      ],
       "icon": "build/icon.png",
       "category": "public.app-category.utilities"
     },
