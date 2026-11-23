@@ -34,6 +34,7 @@ data class MainUiState(
  * All possible user interaction intents
  */
 sealed interface MainAction {
+    data object DismissAppUpdate : MainAction
     data object Initialize : MainAction
     data object RefreshGroups : MainAction
     data object ToggleService : MainAction

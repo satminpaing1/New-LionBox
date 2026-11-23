@@ -76,6 +76,17 @@ class MainViewModel(
     private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default
     private val preloadDispatcher: CoroutineDispatcher = Dispatchers.IO.limitedParallelism(1)
 
+    private val updatePrompt = MainUpdatePrompt(
+        check = { com.v2ray.ang.handler.UpdateCheckerManager.checkForUpdate(false) },
+        now = { android.os.SystemClock.elapsedRealtime() },
+        onError = { LogUtil.e(AppConfig.TAG, "Automatic update check failed", it) }
+    )
+    val availableUpdate = updatePrompt.result
+
+    fun checkForAppUpdate() {
+        viewModelScope.launch { updatePrompt.refresh() }
+    }
+
     // ---------- UI state ----------
     private val _uiState = MutableStateFlow(
         MainUiState(
@@ -278,6 +289,7 @@ class MainViewModel(
     // ---------- Action handler ----------
     fun onAction(action: MainAction) {
         when (action) {
+            MainAction.DismissAppUpdate -> updatePrompt.dismiss()
             MainAction.Initialize -> initialize()
             MainAction.RefreshGroups -> setupGroupTab(forceRefresh = true)
             MainAction.TestAllServers -> testAllRealPing(true)

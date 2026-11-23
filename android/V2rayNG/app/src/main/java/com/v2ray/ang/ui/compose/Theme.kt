@@ -17,6 +17,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -26,6 +28,42 @@ import com.v2ray.ang.handler.MmkvManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+
+object AmbientTokens {
+    val base = Color(0xFFF8F9FB)
+    val blush = Color(0xFFF4D6E2)
+    val lavender = Color(0xFFE0DAF5)
+    val mint = Color(0xFFD6EEE4)
+    val grid = Color(0xFF64748B)
+    val connected = Color(0xFF23836A)
+}
+
+fun Modifier.ambientBackground(darkTheme: Boolean, background: Color): Modifier =
+    this.then(Modifier.drawWithCache {
+        val radius = size.maxDimension * 0.75f
+        val glows = listOf(
+            AmbientTokens.blush to androidx.compose.ui.geometry.Offset(size.width * 0.05f, size.height * 0.12f),
+            AmbientTokens.lavender to androidx.compose.ui.geometry.Offset(size.width * 0.95f, size.height * 0.38f),
+            AmbientTokens.mint to androidx.compose.ui.geometry.Offset(size.width * 0.25f, size.height * 0.9f)
+        ).map { (color, center) -> androidx.compose.ui.graphics.Brush.radialGradient(listOf(color.copy(alpha = 0.65f), color.copy(alpha = 0f)), center, radius) }
+        onDrawBehind {
+            drawRect(if (darkTheme) background else AmbientTokens.base)
+            if (!darkTheme) {
+                glows.forEach { drawRect(it) }
+                val step = 32.dp.toPx()
+                var x = 0f
+                while (x < size.width) {
+                    drawLine(AmbientTokens.grid.copy(alpha = 0.045f), androidx.compose.ui.geometry.Offset(x, 0f), androidx.compose.ui.geometry.Offset(x, size.height), strokeWidth = 1.dp.toPx())
+                    x += step
+                }
+                var y = 0f
+                while (y < size.height) {
+                    drawLine(AmbientTokens.grid.copy(alpha = 0.045f), androidx.compose.ui.geometry.Offset(0f, y), androidx.compose.ui.geometry.Offset(size.width, y), strokeWidth = 1.dp.toPx())
+                    y += step
+                }
+            }
+        }
+    })
 
 private val LightColor = lightColorScheme(
     primary = Color(0xFF365F9C),

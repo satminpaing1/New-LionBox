@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.v2ray.ang.R
+import com.v2ray.ang.ui.compose.ambientBackground
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.ui.logcat.LogcatViewModel
 import androidx.activity.ComponentActivity
@@ -76,7 +77,8 @@ internal fun LionBoxConsole(
         if (uiState.isRunning) onAction(MainAction.TestCurrentServer)
     }
     Scaffold(
-        containerColor = colors.background,
+        modifier = Modifier.ambientBackground(com.v2ray.ang.ui.compose.LocalDarkTheme.current, colors.background),
+        containerColor = Color.Transparent,
         topBar = {
             Row(
                 Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 20.dp, vertical = 12.dp),
@@ -145,34 +147,14 @@ internal fun LionBoxConsole(
                                 }
                                 Text(stringResource(if (uiState.isRunning) R.string.lion_tap_disconnect else R.string.lion_tap_connect), modifier = Modifier.fillMaxWidth(), color = colors.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                                 Text(selected?.remarks ?: stringResource(R.string.lion_no_server), modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    Surface(Modifier.weight(1f).fillMaxHeight(), shape = RoundedCornerShape(14.dp), color = colors.secondaryContainer, border = BorderStroke(1.dp, colors.outlineVariant)) {
-                                        Column(Modifier.heightIn(min = 76.dp).padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically)) {
-                                            Text(selected?.typeDescription ?: "—", color = colors.onSurface, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                                            Text(stringResource(R.string.lion_protocol), style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
-                                        }
-                                    }
-                                    Surface(Modifier.weight(1f).fillMaxHeight(), shape = RoundedCornerShape(14.dp), color = colors.tertiaryContainer, border = BorderStroke(1.dp, colors.outlineVariant)) {
-                                        Column(Modifier.heightIn(min = 76.dp).padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically)) {
-                                            val delay = dashboardLatencyMillis(uiState.status, uiState.isRunning, selected?.testDelayMillis)
-                                            val latencyText = when {
-                                                uiState.isTesting -> stringResource(R.string.connection_test_testing)
-                                                delay != null && delay >= 0 -> stringResource(R.string.server_test_delay_value, delay)
-                                                delay != null -> stringResource(R.string.latency_test_fail)
-                                                else -> stringResource(R.string.connection_test_pending)
-                                            }
-                                            Text(latencyText, color = if (delay != null && delay < 0) colors.error else colors.primary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                                            Text(stringResource(R.string.lion_latency), style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
-                                        }
-                                    }
-                                }
+                                TrafficStats(uiState)
                                 OutlinedButton(onClick = { onAction(if (uiState.isRunning) MainAction.TestCurrentServer else MainAction.TestRealAllServers) }, enabled = uiState.selectedGuid != null && !uiState.isTesting && !isLoading, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp), shape = RoundedCornerShape(14.dp)) {
                                     Text(stringResource(if (uiState.isTesting) R.string.connection_test_testing else R.string.connection_test_pending))
                                 }
                             }
                         }
                     }
-                    item(key = "runtime") { RuntimeStats(uiState) }
+                    item(key = "runtime") { RuntimeStats(uiState, selected) }
                 }
                 if (tab.canImport) {
                     item {
@@ -304,14 +286,37 @@ private fun LionServerCard(row: ServerRowUiModel, selected: Boolean, onSelect: (
 @Composable
 private fun LionPowerButton(isRunning: Boolean, enabled: Boolean, onClick: () -> Unit) {
     val label = stringResource(if (isRunning) R.string.lion_tap_disconnect else R.string.lion_tap_connect)
-    val accent = if (isRunning) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
+    val accent = if (isRunning) com.v2ray.ang.ui.compose.AmbientTokens.connected else MaterialTheme.colorScheme.primary
     val colors = MaterialTheme.colorScheme
-    Box(Modifier.size(164.dp).background(accent.copy(alpha = 0.12f), CircleShape).padding(14.dp), contentAlignment = Alignment.Center) {
+    val wave = remember { androidx.compose.animation.core.Animatable(0f) }
+    LaunchedEffect(isRunning) {
+        wave.snapTo(0f)
+        if (isRunning && android.animation.ValueAnimator.areAnimatorsEnabled()) {
+            repeat(4) {
+                wave.snapTo(0f)
+                wave.animateTo(1f, androidx.compose.animation.core.tween(1800, easing = androidx.compose.animation.core.LinearEasing))
+            }
+        }
+    }
+    Box(Modifier.size(164.dp), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.fillMaxSize()) {
+            val radius = size.minDimension / 2
+            drawCircle(androidx.compose.ui.graphics.Brush.radialGradient(listOf(accent.copy(alpha = 0.24f), accent.copy(alpha = 0f)), radius = radius))
+            if (isRunning) {
+                drawCircle(accent.copy(alpha = 0.2f * (1f - wave.value)), radius * (0.72f + 0.26f * wave.value), style = Stroke(2.dp.toPx()))
+                repeat(12) { index ->
+                    val angle = index * Math.PI / 6
+                    val start = radius * (0.76f + wave.value * 0.08f)
+                    val end = radius * (0.86f + wave.value * 0.12f)
+                    drawLine(accent.copy(alpha = 0.16f * (1f - wave.value)), center + Offset((kotlin.math.cos(angle) * start).toFloat(), (kotlin.math.sin(angle) * start).toFloat()), center + Offset((kotlin.math.cos(angle) * end).toFloat(), (kotlin.math.sin(angle) * end).toFloat()), strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
+                }
+            }
+        }
         Surface(onClick = onClick, enabled = enabled, shape = CircleShape,
             color = if (isRunning) accent else colors.primaryContainer,
             border = BorderStroke(2.dp, if (enabled) accent else colors.outlineVariant),
-            modifier = Modifier.fillMaxSize().semantics { contentDescription = label; stateDescription = label }) {
-            val symbol = if (isRunning) colors.onSecondary else if (enabled) accent else colors.onSurfaceVariant
+            modifier = Modifier.size(136.dp).semantics { contentDescription = label; stateDescription = label }) {
+            val symbol = if (isRunning) Color.White else if (enabled) accent else colors.onSurfaceVariant
             Box(contentAlignment = Alignment.Center) {
                 Canvas(Modifier.size(48.dp)) {
                     val stroke = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round)

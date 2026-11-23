@@ -28,13 +28,19 @@ import com.v2ray.ang.core.formatUptime
 import com.v2ray.ang.extension.toSpeedString
 
 @Composable
-internal fun RuntimeStats(ui: MainUiState) {
+internal fun RuntimeStats(ui: MainUiState, selected: ServerRowUiModel?) {
     val stats = ui.runtime
     val colors = MaterialTheme.colorScheme
     val unavailable = stringResource(R.string.runtime_unavailable)
     val uptime = if (ui.isRunning && stats != null) formatUptime(stats.uptimeSeconds) else unavailable
-    val download = if (ui.isRunning && stats != null) stats.downloadBytesPerSecond.toSpeedString() else unavailable
-    val upload = if (ui.isRunning && stats != null) stats.uploadBytesPerSecond.toSpeedString() else unavailable
+    val protocol = selected?.typeDescription ?: "—"
+    val delay = dashboardLatencyMillis(ui.status, ui.isRunning, selected?.testDelayMillis)
+    val latency = when {
+        ui.isTesting -> stringResource(R.string.connection_test_testing)
+        delay != null && delay >= 0 -> stringResource(R.string.server_test_delay_value, delay)
+        delay != null -> stringResource(R.string.latency_test_fail)
+        else -> stringResource(R.string.connection_test_pending)
+    }
     val network = stringResource(when (if (ui.isRunning) stats?.transport else null) {
         "wifi" -> R.string.runtime_wifi
         "cellular" -> R.string.runtime_cellular
@@ -68,17 +74,17 @@ internal fun RuntimeStats(ui: MainUiState) {
             val singleColumn = maxWidth / LocalDensity.current.fontScale < 300.dp
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (singleColumn) {
-                    RuntimeMetric(stringResource(R.string.runtime_download_label), download, colors.secondaryContainer, colors.onSecondaryContainer)
-                    RuntimeMetric(stringResource(R.string.runtime_upload_label), upload, colors.primaryContainer, colors.onPrimaryContainer)
                     RuntimeMetric(stringResource(R.string.runtime_uptime_label), uptime, colors.primaryContainer, colors.onPrimaryContainer)
+                    RuntimeMetric(stringResource(R.string.lion_latency), latency, colors.tertiaryContainer, colors.onTertiaryContainer, valueColor = if (delay != null && delay < 0) colors.error else colors.primary)
+                    RuntimeMetric(stringResource(R.string.lion_protocol), protocol, colors.secondaryContainer, colors.onSecondaryContainer)
                     RuntimeMetric(stringResource(R.string.runtime_network_label), network, colors.tertiaryContainer, colors.onTertiaryContainer)
                 } else {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        RuntimeMetric(stringResource(R.string.runtime_download_label), download, colors.secondaryContainer, colors.onSecondaryContainer, Modifier.weight(1f))
-                        RuntimeMetric(stringResource(R.string.runtime_upload_label), upload, colors.primaryContainer, colors.onPrimaryContainer, Modifier.weight(1f))
+                        RuntimeMetric(stringResource(R.string.runtime_uptime_label), uptime, colors.primaryContainer, colors.onPrimaryContainer, Modifier.weight(1f))
+                        RuntimeMetric(stringResource(R.string.lion_latency), latency, colors.tertiaryContainer, colors.onTertiaryContainer, Modifier.weight(1f), valueColor = if (delay != null && delay < 0) colors.error else colors.primary)
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        RuntimeMetric(stringResource(R.string.runtime_uptime_label), uptime, colors.primaryContainer, colors.onPrimaryContainer, Modifier.weight(1f))
+                        RuntimeMetric(stringResource(R.string.lion_protocol), protocol, colors.secondaryContainer, colors.onSecondaryContainer, Modifier.weight(1f))
                         RuntimeMetric(stringResource(R.string.runtime_network_label), network, colors.tertiaryContainer, colors.onTertiaryContainer, Modifier.weight(1f))
                     }
                 }
@@ -88,7 +94,29 @@ internal fun RuntimeStats(ui: MainUiState) {
 }
 
 @Composable
-private fun RuntimeMetric(label: String, value: String, tint: Color, foreground: Color, modifier: Modifier = Modifier) {
+internal fun TrafficStats(ui: MainUiState) {
+    val stats = ui.runtime
+    val colors = MaterialTheme.colorScheme
+    val unavailable = stringResource(R.string.runtime_unavailable)
+    val download = if (ui.isRunning && stats != null) stats.downloadBytesPerSecond.toSpeedString() else unavailable
+    val upload = if (ui.isRunning && stats != null) stats.uploadBytesPerSecond.toSpeedString() else unavailable
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        if (maxWidth / LocalDensity.current.fontScale < 300.dp) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                RuntimeMetric(stringResource(R.string.runtime_download_label), download, colors.secondaryContainer, colors.onSecondaryContainer)
+                RuntimeMetric(stringResource(R.string.runtime_upload_label), upload, colors.primaryContainer, colors.onPrimaryContainer)
+            }
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                RuntimeMetric(stringResource(R.string.runtime_download_label), download, colors.secondaryContainer, colors.onSecondaryContainer, Modifier.weight(1f))
+                RuntimeMetric(stringResource(R.string.runtime_upload_label), upload, colors.primaryContainer, colors.onPrimaryContainer, Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun RuntimeMetric(label: String, value: String, tint: Color, foreground: Color, modifier: Modifier = Modifier, valueColor: Color = MaterialTheme.colorScheme.onSurface) {
     val colors = MaterialTheme.colorScheme
     Surface(
         modifier = modifier.fillMaxWidth().heightIn(min = 104.dp).semantics(mergeDescendants = true) {},
@@ -101,7 +129,7 @@ private fun RuntimeMetric(label: String, value: String, tint: Color, foreground:
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(label, style = MaterialTheme.typography.labelLarge, color = foreground)
-            Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, color = colors.onSurface)
+            Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, color = valueColor)
         }
     }
 }
