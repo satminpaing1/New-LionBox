@@ -15,6 +15,9 @@ class ThemeColorsTest {
             KeyConsoleTokens.muted to KeyConsoleTokens.surface,
             KeyConsoleTokens.muted to KeyConsoleTokens.raised,
             KeyConsoleTokens.accent to KeyConsoleTokens.raised,
+            KeyConsoleTokens.accent to KeyConsoleTokens.background,
+            KeyConsoleTokens.accent to KeyConsoleTokens.surface,
+            KeyConsoleTokens.muted to KeyConsoleTokens.background,
             KeyConsoleTokens.background to KeyConsoleTokens.accent,
             KeyConsoleTokens.teal to KeyConsoleTokens.tealSurface,
             KeyConsoleTokens.violet to KeyConsoleTokens.violetSurface

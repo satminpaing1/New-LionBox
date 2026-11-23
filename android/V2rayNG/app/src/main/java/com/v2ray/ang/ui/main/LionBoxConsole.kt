@@ -79,13 +79,14 @@ internal fun LionBoxConsole(
     Scaffold(
         modifier = Modifier.ambientBackground(com.v2ray.ang.ui.compose.LocalDarkTheme.current, colors.background),
         containerColor = Color.Transparent,
+        contentColor = colors.onBackground,
         topBar = {
             Row(
                 Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 20.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Icon(painterResource(R.mipmap.ic_launcher_foreground), null,
+                Icon(painterResource(R.drawable.key_console_launcher), null,
                     Modifier.size(44.dp), tint = Color.Unspecified)
                 Column(Modifier.weight(1f)) {
                     Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)

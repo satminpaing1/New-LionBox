@@ -243,10 +243,14 @@ fun AppTheme(
         MaterialTheme(
             colorScheme = colorScheme
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                AppSnackbarBridge(controller = snackbarController)
-                content()
-                AppSnackbarHost(hostState = snackbarController.hostState)
+            CompositionLocalProvider(
+                androidx.compose.material3.LocalContentColor provides colorScheme.onBackground
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    AppSnackbarBridge(controller = snackbarController)
+                    content()
+                    AppSnackbarHost(hostState = snackbarController.hostState)
+                }
             }
         }
     }
