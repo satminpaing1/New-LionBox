@@ -42,26 +42,6 @@ internal fun RuntimeStats(ui: MainUiState) {
         else -> R.string.runtime_unavailable
     })
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val singleColumn = maxWidth / LocalDensity.current.fontScale < 300.dp
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (singleColumn) {
-                    RuntimeMetric(stringResource(R.string.runtime_uptime_label), uptime, colors.primaryContainer, colors.onPrimaryContainer)
-                    RuntimeMetric(stringResource(R.string.runtime_network_label), network, colors.tertiaryContainer, colors.onTertiaryContainer)
-                    RuntimeMetric(stringResource(R.string.runtime_download_label), download, colors.secondaryContainer, colors.onSecondaryContainer)
-                    RuntimeMetric(stringResource(R.string.runtime_upload_label), upload, colors.primaryContainer, colors.onPrimaryContainer)
-                } else {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        RuntimeMetric(stringResource(R.string.runtime_uptime_label), uptime, colors.primaryContainer, colors.onPrimaryContainer, Modifier.weight(1f))
-                        RuntimeMetric(stringResource(R.string.runtime_network_label), network, colors.tertiaryContainer, colors.onTertiaryContainer, Modifier.weight(1f))
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        RuntimeMetric(stringResource(R.string.runtime_download_label), download, colors.secondaryContainer, colors.onSecondaryContainer, Modifier.weight(1f))
-                        RuntimeMetric(stringResource(R.string.runtime_upload_label), upload, colors.primaryContainer, colors.onPrimaryContainer, Modifier.weight(1f))
-                    }
-                }
-            }
-        }
         Surface(
             modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
             shape = RoundedCornerShape(14.dp),
@@ -82,6 +62,26 @@ internal fun RuntimeStats(ui: MainUiState) {
                     }
                 }
                 Text(stringResource(R.string.runtime_ip_privacy), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            }
+        }
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val singleColumn = maxWidth / LocalDensity.current.fontScale < 300.dp
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (singleColumn) {
+                    RuntimeMetric(stringResource(R.string.runtime_download_label), download, colors.secondaryContainer, colors.onSecondaryContainer)
+                    RuntimeMetric(stringResource(R.string.runtime_upload_label), upload, colors.primaryContainer, colors.onPrimaryContainer)
+                    RuntimeMetric(stringResource(R.string.runtime_uptime_label), uptime, colors.primaryContainer, colors.onPrimaryContainer)
+                    RuntimeMetric(stringResource(R.string.runtime_network_label), network, colors.tertiaryContainer, colors.onTertiaryContainer)
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        RuntimeMetric(stringResource(R.string.runtime_download_label), download, colors.secondaryContainer, colors.onSecondaryContainer, Modifier.weight(1f))
+                        RuntimeMetric(stringResource(R.string.runtime_upload_label), upload, colors.primaryContainer, colors.onPrimaryContainer, Modifier.weight(1f))
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        RuntimeMetric(stringResource(R.string.runtime_uptime_label), uptime, colors.primaryContainer, colors.onPrimaryContainer, Modifier.weight(1f))
+                        RuntimeMetric(stringResource(R.string.runtime_network_label), network, colors.tertiaryContainer, colors.onTertiaryContainer, Modifier.weight(1f))
+                    }
+                }
             }
         }
     }
