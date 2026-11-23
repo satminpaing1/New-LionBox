@@ -22,7 +22,7 @@
   "build": {
     "appId": "com.lionbox.desktop",
     "productName": "LionBox",
-    "files": ["main.js", "preload.js", "bridge.js", "xray-config.js", "fetch-core.js", "package.json"],
+    "files": ["main.js", "preload.js", "bridge.js", "xray-config.js", "fetch-core.js", "package.json", "ui/**/*"],
     "extraResources": ["core/"],
     "win": {
       "target": ["nsis"],
