@@ -1,7 +1,7 @@
 :root {
   --bg: #EEF5FF;
-  --surface: rgba(255, 255, 255, .62);
-  --surface-strong: rgba(255, 255, 255, .78);
+  --surface: rgba(255, 255, 255, .85);
+  --surface-strong: rgba(255, 255, 255, .90);
   --surface-solid: #F7FAFF;
   --text: #0F172A;
   --label: #334155;
@@ -16,13 +16,13 @@
   --mint-ink: #047857;
   --periwinkle: #E0E7FF;
   --periwinkle-ink: #4338CA;
-  --border: rgba(255, 255, 255, .85);
+  --border: #FFFFFF;
   --hairline: rgba(15, 23, 42, .18);
   --radius-md: 20px;
   --radius-lg: 24px;
   --radius-xl: 28px;
   --pill: 999px;
-  --shadow-1: 0 8px 24px rgba(15, 23, 42, .06);
+  --shadow-1: none;
   --shadow-2: 0 12px 32px rgba(16, 185, 129, .15);
   --sans: "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Myanmar", sans-serif;
   --ease: cubic-bezier(.22, .61, .36, 1);
@@ -133,9 +133,9 @@ svg { display: block; }
   gap: 2px;
   padding: 8px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, .92);
+  background: rgba(255, 255, 255, .95);
   border: 1px solid var(--border);
-  box-shadow: 0 16px 40px rgba(15, 23, 42, .12);
+  box-shadow: none;
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
 }
@@ -171,13 +171,9 @@ svg { display: block; }
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 22px 18px 18px;
-  border-radius: var(--radius-xl);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-1);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  padding: 8px 12px 4px;
+  border: 0;
+  background: transparent;
   text-align: center;
 }
 
@@ -332,8 +328,8 @@ svg { display: block; }
   display: grid;
   place-items: center;
   border-radius: 13px;
-  background: var(--accent-soft);
-  color: #1D4ED8;
+  background: transparent;
+  color: var(--accent);
 }
 .quick-icon svg { width: 19px; height: 19px; }
 
@@ -622,9 +618,9 @@ input[type="checkbox"]:checked::after { transform: translateX(18px); }
   gap: 4px;
   padding: 6px;
   border-radius: 30px;
-  background: rgba(255, 255, 255, .78);
+  background: #E6FFFFFF;
   border: 1px solid var(--border);
-  box-shadow: 0 12px 32px rgba(15, 23, 42, .1);
+  box-shadow: none;
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
 }

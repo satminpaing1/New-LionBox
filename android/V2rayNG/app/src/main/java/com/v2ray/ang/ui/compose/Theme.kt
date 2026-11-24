@@ -58,15 +58,27 @@ object GlassTokens {
     val darkLavender = Color(0xFF312E81)
 }
 
-/** Frosted card fill; white glass in light mode, faint white veil on charcoal in dark mode. */
+/**
+ * Material elevation is always zero on glass: a hardware shadow bleeds through a translucent fill
+ * and renders as a dark grey smudge on Android, so cards separate by fill and hairline only.
+ */
+val glassCardElevation = 0.dp
+
+internal fun glassSurfaceFill(dark: Boolean): Color =
+    if (dark) Color(0x17FFFFFF) else Color(0xD9FFFFFF)
+
+internal fun glassBorderTint(dark: Boolean): Color =
+    if (dark) Color(0x2EFFFFFF) else Color(0xFFFFFFFF)
+
+/** Frosted card fill; bright white glass in light mode, faint white veil on charcoal in dark mode. */
 @Composable
-fun glassSurfaceColor(): Color = if (LocalDarkTheme.current) Color(0x17FFFFFF) else Color(0x9EFFFFFF)
+fun glassSurfaceColor(): Color = glassSurfaceFill(LocalDarkTheme.current)
 
 @Composable
-fun glassStrongSurfaceColor(): Color = if (LocalDarkTheme.current) Color(0x24FFFFFF) else Color(0xBFFFFFFF)
+fun glassStrongSurfaceColor(): Color = if (LocalDarkTheme.current) Color(0x24FFFFFF) else Color(0xE6FFFFFF)
 
 @Composable
-fun glassBorderColor(): Color = if (LocalDarkTheme.current) Color(0x2EFFFFFF) else Color(0xD9FFFFFF)
+fun glassBorderColor(): Color = glassBorderTint(LocalDarkTheme.current)
 
 @Composable
 fun glassHairlineColor(): Color = if (LocalDarkTheme.current) Color(0x33FFFFFF) else Color(0x2E0F172A)
@@ -80,7 +92,11 @@ fun glassTextSecondary(): Color = if (LocalDarkTheme.current) Color(0xFFCBD5E1) 
 @Composable
 fun glassTextLabel(): Color = if (LocalDarkTheme.current) Color(0xFFE2E8F0) else GlassTokens.slate
 
-/** The one frosted card surface every screen uses: translucent white, crisp white hairline, soft diffuse shadow. */
+/**
+ * The one frosted card surface every screen uses: bright translucent white, crisp solid white
+ * hairline, and no material elevation — a hardware shadow would show through the translucent
+ * fill and read as a dirty grey smudge on Android, so separation comes from fill and border only.
+ */
 @Composable
 fun GlassCard(
     modifier: Modifier = Modifier,
@@ -93,7 +109,7 @@ fun GlassCard(
         color = glassSurfaceColor(),
         contentColor = glassTextPrimary(),
         border = BorderStroke(1.dp, glassBorderColor()),
-        shadowElevation = if (LocalDarkTheme.current) 0.dp else 8.dp,
+        shadowElevation = glassCardElevation,
         tonalElevation = 0.dp,
         content = content
     )

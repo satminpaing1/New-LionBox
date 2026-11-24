@@ -151,7 +151,7 @@ internal fun LionBoxConsole(
                     shape = RoundedCornerShape(30.dp),
                     color = glassStrongSurfaceColor(),
                     border = BorderStroke(1.dp, glassBorderColor()),
-                    shadowElevation = if (darkTheme) 0.dp else 8.dp
+                    shadowElevation = 0.dp
                 ) {
                     Row(
                         Modifier.fillMaxWidth().padding(6.dp),
@@ -209,62 +209,41 @@ internal fun LionBoxConsole(
                 if (isLoading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
                 if (tab == LionBoxTab.Dashboard) {
                     item {
-                        ConsoleCard(shape = RoundedCornerShape(28.dp)) {
-                            Column(
-                                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 22.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                LionPowerButton(uiState.isRunning, connectionAction(uiState.selectedGuid != null, uiState.isRunning) != null && !isLoading) {
-                                    connectionAction(uiState.selectedGuid != null, uiState.isRunning)?.let(onAction)
-                                }
-                                Spacer(Modifier.height(10.dp))
-                                Text(
-                                    if (uiState.isRunning) stringResource(R.string.lion_connected) else displayText,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    fontSize = 22.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (uiState.isRunning) GlassTokens.connectedText else glassTextPrimary(),
-                                    textAlign = TextAlign.Center,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    stringResource(if (uiState.isRunning) R.string.lion_tap_disconnect else R.string.lion_tap_connect),
-                                    modifier = Modifier.fillMaxWidth(),
-                                    fontSize = 14.sp,
-                                    color = glassTextSecondary(),
-                                    textAlign = TextAlign.Center
-                                )
-                                Text(
-                                    selected?.remarks ?: stringResource(R.string.lion_no_server),
-                                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                                    fontSize = 13.sp,
-                                    color = glassTextSecondary(),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    textAlign = TextAlign.Center
-                                )
-                                Spacer(Modifier.height(10.dp))
-                                OutlinedButton(
-                                    onClick = { onAction(if (uiState.isRunning) MainAction.TestCurrentServer else MainAction.TestRealAllServers) },
-                                    enabled = uiState.selectedGuid != null && !uiState.isTesting && !isLoading,
-                                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-                                    shape = RoundedCornerShape(999.dp),
-                                    border = BorderStroke(1.dp, glassHairlineColor()),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        containerColor = glassSurfaceColor(),
-                                        contentColor = glassTextPrimary(),
-                                        disabledContentColor = glassTextSecondary()
-                                    )
-                                ) {
-                                    Text(
-                                        stringResource(if (uiState.isTesting) R.string.connection_test_testing else R.string.connection_test_pending),
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
+                        Column(
+                            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            LionPowerButton(uiState.isRunning, connectionAction(uiState.selectedGuid != null, uiState.isRunning) != null && !isLoading) {
+                                connectionAction(uiState.selectedGuid != null, uiState.isRunning)?.let(onAction)
                             }
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                if (uiState.isRunning) stringResource(R.string.lion_connected) else displayText,
+                                modifier = Modifier.fillMaxWidth(),
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (uiState.isRunning) GlassTokens.connectedText else glassTextPrimary(),
+                                textAlign = TextAlign.Center,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                stringResource(if (uiState.isRunning) R.string.lion_tap_disconnect else R.string.lion_tap_connect),
+                                modifier = Modifier.fillMaxWidth(),
+                                fontSize = 14.sp,
+                                color = glassTextSecondary(),
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                selected?.remarks ?: stringResource(R.string.lion_no_server),
+                                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                                fontSize = 13.sp,
+                                color = glassTextSecondary(),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.Center
+                            )
                         }
                     }
                     item(key = "traffic") { TrafficStats(uiState) }
@@ -358,7 +337,7 @@ internal fun LionBoxConsole(
                                 horizontalArrangement = Arrangement.spacedBy(14.dp)
                             ) {
                                 Box(
-                                    Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).background(glassStrongSurfaceColor()),
+                                    Modifier.size(40.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(painterResource(destination.iconRes), null, Modifier.size(21.dp), tint = colors.primary)
@@ -412,7 +391,7 @@ private fun LionServerCard(row: ServerRowUiModel, selected: Boolean, onSelect: (
             if (darkTheme) Color(0x33BFDBFE) else Color(0xE6F2F8FF)
         } else glassSurfaceColor(),
         border = BorderStroke(1.dp, if (selected) Color(0xFF93C5FD) else glassBorderColor()),
-        shadowElevation = if (darkTheme) 0.dp else 4.dp
+        shadowElevation = 0.dp
     ) {
         Row(
             Modifier.fillMaxWidth()
@@ -505,6 +484,16 @@ private fun LionPowerButton(isRunning: Boolean, enabled: Boolean, onClick: () ->
             val haloRadius = 90.dp.toPx()
             val ringRadius = 74.dp.toPx()
             drawCircle(haloFill, radius = haloRadius, center = c)
+            // Soft coloured glow under the orb: a material elevation shadow would read as dirty grey.
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(orbStart.copy(alpha = 0.30f * opacity), Color.Transparent),
+                    center = c,
+                    radius = ringRadius
+                ),
+                radius = ringRadius,
+                center = c
+            )
             drawCircle(haloStroke, radius = haloRadius, center = c, style = Stroke(1.5.dp.toPx()))
             if (isRunning) {
                 listOf(0f, 0.5f).forEachIndexed { index, offset ->
@@ -530,7 +519,7 @@ private fun LionPowerButton(isRunning: Boolean, enabled: Boolean, onClick: () ->
             enabled = enabled,
             shape = CircleShape,
             color = Color.Transparent,
-            shadowElevation = if (darkTheme) 0.dp else 12.dp,
+            shadowElevation = 0.dp,
             modifier = Modifier.size(116.dp).semantics { contentDescription = label; stateDescription = label }
         ) {
             Box(

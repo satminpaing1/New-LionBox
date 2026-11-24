@@ -40,7 +40,7 @@ internal fun RuntimeStats(ui: MainUiState, selected: ServerRowUiModel?) {
         ui.isTesting -> stringResource(R.string.connection_test_testing)
         delay != null && delay >= 0 -> stringResource(R.string.server_test_delay_value, delay)
         delay != null -> stringResource(R.string.latency_test_fail)
-        else -> stringResource(R.string.connection_test_pending)
+        else -> "—"
     }
     val network = stringResource(when (if (ui.isRunning) stats?.transport else null) {
         "wifi" -> R.string.runtime_wifi
