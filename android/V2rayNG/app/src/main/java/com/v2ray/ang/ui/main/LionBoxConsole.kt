@@ -1,5 +1,6 @@
 package com.v2ray.ang.ui.main
 
+import android.os.Build
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -605,15 +606,21 @@ private fun CircleActionButton(
     }
 }
 
+private fun animatorsEnabled(): Boolean {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        return android.animation.ValueAnimator.areAnimatorsEnabled()
+    }
+    return true
+}
+
 @Composable
-private fun LionPowerButton(isRunning: Boolean, enabled: Boolean, onClick: () -> Unit) {
-    val label = stringResource(if (isRunning) R.string.lion_tap_disconnect else R.string.lion_tap_connect)
+private fun LionPowerButton(isRunning: Boolean, enabled: Boolean, onClick: () -> Unit) {    val label = stringResource(if (isRunning) R.string.lion_tap_disconnect else R.string.lion_tap_connect)
     val darkTheme = LocalDarkTheme.current
     val opacity = if (enabled) 1f else 0.45f
     val wave = remember { Animatable(0f) }
     LaunchedEffect(isRunning) {
         wave.snapTo(0f)
-        if (isRunning && android.animation.ValueAnimator.areAnimatorsEnabled()) {
+        if (isRunning && animatorsEnabled()) {
             while (isRunning) {
                 wave.snapTo(0f)
                 wave.animateTo(1f, tween(2800, easing = LinearEasing))
