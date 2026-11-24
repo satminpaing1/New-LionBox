@@ -42,7 +42,7 @@
       if (!Array.isArray(value)) throw new Error('Invalid storage');
       return value;
     } catch (e) {
-      toast('သိမ်းထားသော data ကို မဖတ်နိုင်ပါ။ Browser storage ကို စစ်ပါ။');
+      toast('Could not read saved data. Check browser storage.');
       return [];
     }
   }
@@ -57,7 +57,7 @@
   function addLog(text) {
     logs.unshift({ text, at: new Date().toISOString() });
     logs = logs.slice(0, 100);
-    try { store(LOG_KEY, logs); } catch (e) { toast('မှတ်တမ်းကို မသိမ်းနိုင်ပါ။ Browser storage ကို စစ်ပါ။'); }
+    try { store(LOG_KEY, logs); } catch (e) { toast('Could not save activity. Check browser storage.'); }
     renderActivity();
   }
 
@@ -112,7 +112,7 @@
 
   function renderStatus() {
     const p = selectedProfile();
-    $('status-server').textContent = p ? displayName(p) : 'Server ရွေးပါ';
+    $('status-server').textContent = p ? displayName(p) : 'Choose a server';
     $('status-proto').textContent = p ? p.protocol || 'VLESS' : 'VLESS';
   }
 
@@ -122,8 +122,8 @@
     const selected = selectedProfile() === p;
     div.dataset.selected = selected;
     div.innerHTML = '<span class="server-icon"><span data-icon="lion"></span></span>' +
-      '<button class="info select-server" aria-pressed="' + selected + '"><strong>' + escapeHtml(displayName(p)) + '</strong><span class="muted">' + escapeHtml(p.protocol || 'VLESS') + ' · ****** · ' + escapeHtml(p.security.toUpperCase()) + '</span></button>' +
-      '<button class="del" aria-label="Server ဖျက်မည်"><span data-icon="trash"></span></button>';
+      '<button class="info select-server" aria-pressed="' + selected + '"><strong>' + escapeHtml(displayName(p)) + '</strong><span class="muted"><span class="protocol-badge">' + escapeHtml(p.protocol || 'VLESS') + '</span><span>' + escapeHtml(p.security.toUpperCase()) + ' · Private address</span></span></button>' +
+      '<button class="del" aria-label="Delete server"><span data-icon="trash"></span></button>';
     div.querySelector('.select-server').addEventListener('click', () => { selectedRaw = p.raw; renderAll(); });
     div.querySelector('.del').addEventListener('click', () => removeProfile(p));
     renderIcons(div);
@@ -147,12 +147,12 @@
     if (!list.length) {
       const empty = document.createElement('p');
       empty.className = 'empty';
-      empty.textContent = searching ? 'ရှာမတွေ့ပါ။' : 'Server မရှိသေးပါ။ Key / config ထည့်ပါ။';
+      empty.textContent = searching ? 'No matching servers. Try another name or address.' : 'A fresh start. Add your first server to get ready.';
       wrap.appendChild(empty);
       if (!searching) {
         const button = document.createElement('button');
         button.className = 'btn ghost';
-        button.textContent = 'Key / config ထည့်မည်';
+        button.textContent = 'Add a server';
         button.addEventListener('click', openImport);
         wrap.appendChild(button);
       }
@@ -171,19 +171,19 @@
   }
 
   function removeProfile(p) {
-    if ($('confirm-delete').checked && !confirm('“' + displayName(p) + '” ကို ဖျက်မလား?')) return;
+    if ($('confirm-delete').checked && !confirm('Delete “' + displayName(p) + '”?')) return;
     const next = profiles.filter(item => item !== p);
-    try { store(STORE_KEY, next); } catch (e) { toast('Server ကို မဖျက်နိုင်ပါ။ Browser storage ကို စစ်ပါ။'); return; }
+    try { store(STORE_KEY, next); } catch (e) { toast('Could not delete the server. Check browser storage.'); return; }
     profiles = next;
     addLog('Removed server “' + displayName(p) + '”');
     renderAll();
-    toast('Server ဖျက်ပြီးပါပြီ');
+    toast('Server removed');
   }
 
   function renderActivity() {
     const wrap = $('activity-list');
     wrap.innerHTML = '';
-    if (!logs.length) { wrap.innerHTML = '<p class="empty">မှတ်တမ်း မရှိသေးပါ။</p>'; return; }
+    if (!logs.length) { wrap.innerHTML = '<p class="empty">Nothing here yet. Your profile changes will appear here.</p>'; return; }
     logs.forEach(l => {
       const row = document.createElement('div');
       row.className = 'log-row';
@@ -206,23 +206,23 @@
     e.preventDefault();
     const button = $('import-submit');
     button.disabled = true;
-    button.textContent = 'သိမ်းနေပါသည်…';
+    button.textContent = 'Saving…';
     $('import-form').setAttribute('aria-busy', 'true');
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     try {
       const raw = $('vless-input').value.trim();
       const parsed = (raw.startsWith('{') ? [raw] : raw.split('\n').map(l => l.trim()).filter(Boolean)).map(parseProfile);
-      if (!parsed.length || parsed.some(p => !p)) throw new Error('VLESS / Shadowsocks config မမှန်ပါ။ Key နဲ့ server အချက်အလက်ကို စစ်ပါ။');
+      if (!parsed.length || parsed.some(p => !p)) throw new Error('Invalid VLESS / Shadowsocks config. Check your key and server details.');
       const next = [...profiles];
       parsed.forEach(p => { if (!next.some(x => x.raw === p.raw)) next.push(p); });
       const added = next.length - profiles.length;
-      try { store(STORE_KEY, next); } catch (e) { throw new Error('Config ကို မသိမ်းနိုင်ပါ။ Browser storage ကို စစ်ပါ။'); }
+      try { store(STORE_KEY, next); } catch (e) { throw new Error('Could not save your config. Check browser storage.'); }
       profiles = next;
       addLog('Imported ' + added + ' server' + (added === 1 ? '' : 's'));
       $('import-form').reset();
       $('import-dialog').close();
       renderAll();
-      toast(added ? added + ' server ထည့်ပြီးပါပြီ' : 'ဤ config ကို ထည့်ထားပြီးပါပြီ');
+      toast(added ? added + ' server' + (added === 1 ? '' : 's') + ' added' : 'This config is already saved');
     } catch (e) {
       $('import-error').textContent = e.message;
       $('vless-input').setAttribute('aria-invalid', 'true');
@@ -236,20 +236,20 @@
 
   $('connect-button').addEventListener('click', () => {
     if (!profiles.length) { openImport(); return; }
-    $('status-label').textContent = 'Android app လိုအပ်ပါသည်';
-    $('status-latency').textContent = 'Latency — (Android app တွင် စစ်ပါ)';
-    toast('VPN ချိတ်ဆက်ရန် LionBox APK ကို Android ဖုန်းတွင် အသုံးပြုပါ။');
+    $('status-label').textContent = 'Android app required';
+    $('status-latency').textContent = 'Check live ping in Android';
+    toast('Use LionBox for Android to connect to your VPN.');
   });
   document.querySelectorAll('.nav-item').forEach(b => b.addEventListener('click', () => showPage(b.dataset.page)));
   $('view-all').addEventListener('click', () => showPage('servers'));
   $('search').addEventListener('input', renderAll);
   $('clear-log').addEventListener('click', () => {
-    try { store(LOG_KEY, []); } catch (e) { toast('မှတ်တမ်းကို မဖျက်နိုင်ပါ။ Browser storage ကို စစ်ပါ။'); return; }
+    try { store(LOG_KEY, []); } catch (e) { toast('Could not clear activity. Check browser storage.'); return; }
     logs = [];
     renderActivity();
   });
   $('export-all').addEventListener('click', () => {
-    if (!profiles.length) { toast('Export လုပ်ရန် profile မရှိပါ'); return; }
+    if (!profiles.length) { toast('Add a profile before exporting'); return; }
     const url = URL.createObjectURL(new Blob([profiles.map(p => p.raw).join('\n')], { type: 'text/plain' }));
     const a = document.createElement('a');
     a.href = url;

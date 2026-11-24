@@ -30,72 +30,63 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 object AmbientTokens {
-    val base = Color(0xFFF8F9FB)
-    val blush = Color(0xFFF4D6E2)
+    val base = Color(0xFFEEF4FB)
+    val blush = Color(0xFFBAE6FD)
     val lavender = Color(0xFFE0DAF5)
-    val mint = Color(0xFFD6EEE4)
-    val grid = Color(0xFF64748B)
-    val darkBlush = Color(0xFF644454)
+    val mint = Color(0xFFCCFBF1)
+    val darkBlush = Color(0xFF304E72)
     val darkLavender = Color(0xFF494B78)
     val darkMint = Color(0xFF2B625A)
-    val darkGrid = Color(0xFFBAC6D8)
-    val connected = Color(0xFF23836A)
+    val connected = Color(0xFF047857)
+    val accentStart = Color(0xFF38BDF8)
+    val accentEnd = Color(0xFF3B82F6)
+    val glass = Color.White.copy(alpha = 0.75f)
+    val glassBorder = Color.White.copy(alpha = 0.9f)
+    val radius = 26.dp
 }
 
 fun Modifier.ambientBackground(darkTheme: Boolean, background: Color): Modifier =
     this.then(Modifier.drawWithCache {
         val radius = size.maxDimension * 0.75f
         val glowAlpha = if (darkTheme) 0.2f else 0.65f
-        val gridColor = if (darkTheme) AmbientTokens.darkGrid else AmbientTokens.grid
         val glows = listOf(
             (if (darkTheme) AmbientTokens.darkBlush else AmbientTokens.blush) to androidx.compose.ui.geometry.Offset(size.width * 0.05f, size.height * 0.12f),
             (if (darkTheme) AmbientTokens.darkLavender else AmbientTokens.lavender) to androidx.compose.ui.geometry.Offset(size.width * 0.95f, size.height * 0.38f),
-            (if (darkTheme) AmbientTokens.darkMint else AmbientTokens.mint) to androidx.compose.ui.geometry.Offset(size.width * 0.25f, size.height * 0.9f)
+            (if (darkTheme) AmbientTokens.darkMint else AmbientTokens.mint) to androidx.compose.ui.geometry.Offset(size.width * 0.05f, size.height * 0.9f)
         ).map { (color, center) -> androidx.compose.ui.graphics.Brush.radialGradient(listOf(color.copy(alpha = glowAlpha), color.copy(alpha = 0f)), center, radius) }
         onDrawBehind {
             drawRect(if (darkTheme) background else AmbientTokens.base)
             glows.forEach { drawRect(it) }
-            val step = 32.dp.toPx()
-            var x = 0f
-            while (x < size.width) {
-                drawLine(gridColor.copy(alpha = 0.045f), androidx.compose.ui.geometry.Offset(x, 0f), androidx.compose.ui.geometry.Offset(x, size.height), strokeWidth = 1.dp.toPx())
-                x += step
-            }
-            var y = 0f
-            while (y < size.height) {
-                drawLine(gridColor.copy(alpha = 0.045f), androidx.compose.ui.geometry.Offset(0f, y), androidx.compose.ui.geometry.Offset(size.width, y), strokeWidth = 1.dp.toPx())
-                y += step
-            }
         }
     })
 
 private val LightColor = lightColorScheme(
-    primary = Color(0xFF365F9C),
-    onPrimary = Color(0xFFF8FAFF),
-    primaryContainer = Color(0xFFDDE9FA),
-    onPrimaryContainer = Color(0xFF203C65),
-    secondary = Color(0xFF28685D),
-    onSecondary = Color(0xFFF4FCF9),
-    secondaryContainer = Color(0xFFDCEFE7),
-    onSecondaryContainer = Color(0xFF214D43),
+    primary = Color(0xFF2563EB),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFE0E7FF),
+    onPrimaryContainer = Color(0xFF1E40AF),
+    secondary = AmbientTokens.connected,
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFD1FAE5),
+    onSecondaryContainer = AmbientTokens.connected,
     tertiary = Color(0xFF66568A),
     onTertiary = Color(0xFFFCF8FF),
     tertiaryContainer = Color(0xFFE9E2F5),
     onTertiaryContainer = Color(0xFF44365F),
-    background = Color(0xFFEDF2F7),
-    onBackground = Color(0xFF263447),
-    surface = Color(0xFFF4F7FB),
-    onSurface = Color(0xFF263447),
-    surfaceVariant = Color(0xFFE1E8F0),
-    onSurfaceVariant = Color(0xFF526174),
-    outline = Color(0xFF77869A),
-    outlineVariant = Color(0xFFCCD7E3),
-    surfaceTint = Color(0xFF365F9C),
-    surfaceContainerLowest = Color(0xFFF7F9FC),
-    surfaceContainerLow = Color(0xFFEFF4F9),
-    surfaceContainer = Color(0xFFE7EEF6),
-    surfaceContainerHigh = Color(0xFFE1E8F2),
-    surfaceContainerHighest = Color(0xFFD9E2EE),
+    background = AmbientTokens.base,
+    onBackground = Color(0xFF1E293B),
+    surface = Color.White,
+    onSurface = Color(0xFF1E293B),
+    surfaceVariant = Color(0xFFE9EEFC),
+    onSurfaceVariant = Color(0xFF596B82),
+    outline = Color(0xFF64748B),
+    outlineVariant = Color(0xFFD8E3EF),
+    surfaceTint = Color(0xFF2563EB),
+    surfaceContainerLowest = Color.White,
+    surfaceContainerLow = Color(0xFFF7FAFF),
+    surfaceContainer = Color(0xFFEFF4FB),
+    surfaceContainerHigh = Color(0xFFE9EEFC),
+    surfaceContainerHighest = Color(0xFFE0E7FF),
 )
 
 object KeyConsoleTokens {
