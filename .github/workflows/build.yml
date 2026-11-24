@@ -14,6 +14,28 @@ permissions:
   contents: write
 
 jobs:
+  release-check:
+    if: github.event_name == 'workflow_dispatch' && inputs.release_tag != ''
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+    - name: Require a new Xray core before signing and publishing
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_TAG: ${{ inputs.release_tag }}
+      run: |
+        set -euo pipefail
+        VERSION=$(python3 -c 'import re; print(re.search(r"versionName = \"([^\"]+)\"", open("android/V2rayNG/app/build.gradle.kts").read()).group(1))')
+        [ "$RELEASE_TAG" = "v${VERSION}-lionbox" ]
+        CURRENT=$(tr -d '\r\n' < android/.xray-core-version)
+        LATEST=$(gh api repos/2dust/AndroidLibXrayLite/releases/latest --jq '.tag_name')
+        RELEASE=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq '.tag_name')
+        PUBLISHED=$(gh api "repos/$GITHUB_REPOSITORY/contents/android/.xray-core-version?ref=$RELEASE" --jq '.content' | base64 --decode | tr -d '\r\n')
+        if [ "$CURRENT" != "$LATEST" ] || [ "$CURRENT" = "$PUBLISHED" ]; then
+          echo "::error::No unpublished latest Xray core. Refusing a version-only signed release."
+          exit 1
+        fi
+
   build:
     runs-on: ubuntu-latest
 
@@ -53,11 +75,19 @@ jobs:
       run: |
         cp -r ${{ github.workspace }}/android/libs ${{ github.workspace }}/android/V2rayNG/app
 
+    - name: Read recorded core version
+      id: core
+      run: |
+        set -euo pipefail
+        CORE=$(tr -d '\r\n' < android/.xray-core-version)
+        [[ "$CORE" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+        echo "tag=$CORE" >> "$GITHUB_OUTPUT"
+
     - name: Download libv2ray
       uses: robinraju/release-downloader@v1.13
       with:
         repository: '2dust/AndroidLibXrayLite'
-        latest: true
+        tag: ${{ steps.core.outputs.tag }}
         fileName: 'libv2ray.aar'
         out-file-path: android/V2rayNG/app/libs/
 
@@ -94,7 +124,7 @@ jobs:
         path: ${{ github.workspace }}/android/V2rayNG/app/build/outputs/apk/*/release/*.apk
 
   sign-and-release:
-    needs: build
+    needs: [build, release-check]
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' && inputs.release_tag != ''
 

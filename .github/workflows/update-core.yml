@@ -3,11 +3,15 @@ name: Update Xray Core
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 18 * * *'  # daily at 18:00 UTC
+    - cron: '0 18 * * *'
 
 permissions:
   contents: write
   actions: write
+
+concurrency:
+  group: update-xray-core
+  cancel-in-progress: false
 
 jobs:
   update-core:
@@ -16,46 +20,68 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Check latest AndroidLibXrayLite release
-        id: latest
+      - name: Check for core update
+        id: check
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          LATEST=$(gh api repos/2dust/AndroidLibXrayLite/releases/latest --jq .tag_name)
-          CURRENT=$(cat android/.xray-core-version 2>/dev/null || echo none)
+          set -euo pipefail
+          LATEST=$(gh api repos/2dust/AndroidLibXrayLite/releases/latest --jq '.tag_name')
+          CURRENT=$(tr -d '\r\n' < android/.xray-core-version)
+          [[ "$LATEST" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          RELEASE=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq '.tag_name')
+          PUBLISHED=$(gh api "repos/$GITHUB_REPOSITORY/contents/android/.xray-core-version?ref=$RELEASE" --jq '.content' | base64 --decode | tr -d '\r\n')
+          echo "Available core: $LATEST; tracked core: $CURRENT; published core: $PUBLISHED"
           echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
-          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
-          if [ "$LATEST" = "$CURRENT" ]; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
+          if [ "$LATEST" != "$CURRENT" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          elif [ "$CURRENT" != "$PUBLISHED" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "release=true" >> "$GITHUB_OUTPUT"
+            echo "Retrying publication of the already tracked core without another version bump."
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "No new Xray core; no version bump or signed release."
           fi
 
-      - name: Stop if core is current
-        if: steps.latest.outputs.changed != 'true'
-        run: echo "Core ${{ steps.latest.outputs.current }} is already the latest release."
-
-      - name: Bump app version and commit
-        if: steps.latest.outputs.changed == 'true'
+      - name: Bump version and record new core
+        if: steps.check.outputs.changed == 'true'
         env:
-          LATEST: ${{ steps.latest.outputs.latest }}
+          CORE_VERSION: ${{ steps.check.outputs.latest }}
         run: |
-          git config user.name "LionBox Bot"
-          git config user.email "lionbox@users.noreply.github.com"
-          echo "$LATEST" > android/.xray-core-version
-
-          OLD_VERSION=$(grep -oP 'versionName = "\K[0-9.]+' android/V2rayNG/app/build.gradle.kts)
-          NEW_VERSION=$(awk -F. -v OFS=. '{$3+=1; print}' <<< "$OLD_VERSION")
-          sed -i "s/versionName = \"$OLD_VERSION\"/versionName = \"$NEW_VERSION\"/" android/V2rayNG/app/build.gradle.kts
-
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+          path = Path('android/V2rayNG/app/build.gradle.kts')
+          text = path.read_text()
+          code = int(re.search(r'versionCode = (\d+)', text).group(1)) + 1
+          version = re.search(r'versionName = "([^"]+)"', text).group(1)
+          parts = version.split('.')
+          parts[-1] = str(int(parts[-1]) + 1)
+          text = re.sub(r'versionCode = \d+', f'versionCode = {code}', text, count=1)
+          text = re.sub(r'versionName = "[^"]+"', f'versionName = "{".".join(parts)}"', text, count=1)
+          path.write_text(text)
+          Path('android/.xray-core-version').write_text(os.environ['CORE_VERSION'] + '\n')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add android/.xray-core-version android/V2rayNG/app/build.gradle.kts
-          git commit -m "Update Xray core to $LATEST, app version $NEW_VERSION"
+          git commit -m "Update Xray core to $CORE_VERSION"
           git push origin HEAD:main
 
-      - name: Trigger signed release build
-        if: steps.latest.outputs.changed == 'true'
+      - name: Dispatch signed core release
+        if: steps.check.outputs.release == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          NEW_VERSION=$(grep -oP 'versionName = "\K[0-9.]+' android/V2rayNG/app/build.gradle.kts)
-          gh workflow run build.yml -f release_tag="v${NEW_VERSION}-lionbox"
+          set -euo pipefail
+          ACTIVE=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow build.yml --event workflow_dispatch --json status --jq '[.[] | select(.status != "completed")] | length')
+          if [ "$ACTIVE" != 0 ]; then
+            echo "A signed build is already pending; the next core check will retry if needed."
+            exit 0
+          fi
+          VERSION=$(python3 -c 'import re; print(re.search(r"versionName = \"([^\"]+)\"", open("android/V2rayNG/app/build.gradle.kts").read()).group(1))')
+          gh workflow run build.yml --repo "$GITHUB_REPOSITORY" --ref main -f "release_tag=v${VERSION}-lionbox"
