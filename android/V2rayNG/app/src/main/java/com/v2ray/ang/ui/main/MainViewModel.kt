@@ -235,6 +235,7 @@ class MainViewModel(
             is MainServiceEvent.MeasureDelayResult -> {
                 if (!uiState.value.isRunning || !testRequests.completeCurrent(event.requestId)) return
                 _uiState.update { it.copy(isTesting = testRequests.isTesting, status = MainStatus.ConnectionTest(event.result)) }
+                publishConnectedTestDelay(event.result.delayMillis)
             }
 
             is MainServiceEvent.MeasureConfigSuccess -> {
@@ -303,6 +304,34 @@ class MainViewModel(
                 servers = applyTestDelayResults(current.servers, updates),
                 rows = applyTestDelayResultsToRows(current.rows, updates),
             )
+        }
+    }
+
+    /**
+     * Writes a successful latency test for the connected server into the cached rows, so the
+     * active server's ping badge and the dashboard Latency card update without a reload.
+     * A failed test (-1) keeps the previous value and is reported through the status text/log.
+     */
+    private fun publishConnectedTestDelay(delayMillis: Long) {
+        val guid = uiState.value.selectedGuid
+        if (delayMillis < 0 || guid.isNullOrBlank()) return
+        val updates = mapOf(guid to delayMillis)
+        viewModelScope.launch {
+            val groups = cacheMutex.withLock {
+                groupDataCache.keys
+                    .filter { group -> groupDataCache[group]?.any { it.guid == guid } == true }
+                    .onEach { group ->
+                        groupDataCache[group] = applyTestDelayResults(groupDataCache[group].orEmpty(), updates)
+                    }
+            }
+            groups.ifEmpty { listOf(uiState.value.selectedGroupId) }.forEach { groupId ->
+                mutableServerGroupState(groupId).update { current ->
+                    current.copy(
+                        servers = applyTestDelayResults(current.servers, updates),
+                        rows = applyTestDelayResultsToRows(current.rows, updates),
+                    )
+                }
+            }
         }
     }
 

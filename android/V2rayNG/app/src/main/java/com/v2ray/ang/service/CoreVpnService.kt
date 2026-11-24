@@ -125,6 +125,10 @@ class CoreVpnService : VpnService(), ServiceControl {
         return protect(socket)
     }
 
+    override fun vpnProtect(socket: java.net.Socket): Boolean {
+        return protect(socket)
+    }
+
     override fun setUnderlyingNetworks(networks: Array<Network>?): Boolean {
         return super<VpnService>.setUnderlyingNetworks(networks)
     }

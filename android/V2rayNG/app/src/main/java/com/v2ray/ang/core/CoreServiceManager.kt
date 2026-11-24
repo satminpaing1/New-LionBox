@@ -29,12 +29,17 @@ import com.v2ray.ang.service.DialerNativeService
 import com.v2ray.ang.service.DialerWebviewService
 import com.v2ray.ang.service.NetworkMonitor
 import com.v2ray.ang.util.LogUtil
+import com.v2ray.ang.util.SocketProtector
+import com.v2ray.ang.util.Socks5Endpoint
+import com.v2ray.ang.util.TunnelLatencyProbe
+import com.v2ray.ang.util.TunnelProbeOutcome
 import com.v2ray.ang.util.Utils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -180,6 +185,7 @@ object CoreServiceManager {
 
         try {
             doStartCoreLoop(service, vpnInterface)
+            SocketProtector.protector = { socket -> serviceControl?.get()?.vpnProtect(socket) ?: false }
             return true
         } catch (e: Exception) {
             val message = e.message?.takeUnless { it.isBlank() } ?: e.javaClass.simpleName
@@ -273,6 +279,7 @@ object CoreServiceManager {
     fun stopCoreLoop(): Boolean {
         stopRuntime()
         connectionTestScope.coroutineContext.cancelChildren()
+        SocketProtector.clear()
         val service = getService() ?: return false
 
         networkMonitor?.unregister()
@@ -397,8 +404,14 @@ object CoreServiceManager {
 
     /**
      * Measures the connection delay for the current V2Ray configuration.
-     * Tests the configured URL, then alternative endpoints through the running core.
-     * Also fetches remote IP information if the delay test was successful.
+     *
+     * While the core runs, the probe goes through the tunnel that is already up: SOCKS5 to the
+     * core's local inbound and an HTTP GET to the delay test URL, with a hard 5-8 s budget. That
+     * path mirrors real device traffic and avoids dialing from inside the core (which could be
+     * routed back into the tunnel). The core's own dialer is kept as a fallback.
+     *
+     * Every failed attempt is written to the log with its exact reason, and the reason is also
+     * attached to the result so a timeout is never a silent dash.
      */
     private fun measureV2rayDelay(requestId: String) {
         val service = getService() ?: return
@@ -409,19 +422,21 @@ object CoreServiceManager {
 
         connectionTestScope.coroutineContext.cancelChildren()
         connectionTestScope.launch {
-            val time = com.v2ray.ang.util.LatencyProbe.measure(
-                SettingsManager.getDelayTestUrl(),
-                SettingsManager.getDelayTestUrl(true),
-            ) { url ->
-                ensureActive()
-                coreController.measureDelay(url)
-            }
+            val failures = mutableListOf<String>()
+            val tunnelTime = measureThroughActiveTunnel(failures)
+            val time = if (tunnelTime >= 0) tunnelTime else measureThroughCore(failures)
 
-            ensureActive()
+            currentCoroutineContext().ensureActive()
+            if (time < 0) {
+                LogUtil.w(
+                    AppConfig.TAG,
+                    "Latency test failed while connected: ${failures.joinToString("; ").ifBlank { "unknown reason" }}",
+                )
+            }
             val endpoint = if (time >= 0) SpeedtestManager.getRemoteIPInfo() else null
             val result = ConnectionTestResult(
                 delayMillis = time,
-                errorMessage = "",
+                errorMessage = if (time >= 0) "" else failures.joinToString("; "),
                 country = endpoint?.country,
                 ipAddress = endpoint?.ipAddress,
             )
@@ -437,6 +452,66 @@ object CoreServiceManager {
                 MessageHelper.sendMsg2UI(service, AppConfig.MSG_MEASURE_DELAY_CANCEL, "", requestId)
             }
         }
+    }
+
+    /**
+     * Probes the delay test URLs over the running core's local SOCKS5 inbound.
+     * @return The delay in milliseconds, or -1 with the reasons appended to [failures].
+     */
+    private suspend fun measureThroughActiveTunnel(failures: MutableList<String>): Long {
+        val port = SettingsManager.getSocksPort()
+        if (port <= 0) {
+            failures += "tunnel probe skipped: local socks inbound is disabled"
+            return -1L
+        }
+        val endpoint = Socks5Endpoint(
+            host = AppConfig.LOOPBACK,
+            port = port,
+            username = SettingsManager.getSocksUsername(),
+            password = SettingsManager.getSocksPassword(),
+        )
+        for (url in listOf(SettingsManager.getDelayTestUrl(), SettingsManager.getDelayTestUrl(true))) {
+            currentCoroutineContext().ensureActive()
+            when (val outcome = TunnelLatencyProbe.measure(endpoint, url)) {
+                is TunnelProbeOutcome.Success -> {
+                    LogUtil.i(
+                        AppConfig.TAG,
+                        "Latency test through the active tunnel: ${outcome.delayMillis}ms ($url)",
+                    )
+                    return outcome.delayMillis
+                }
+                is TunnelProbeOutcome.Failure -> {
+                    val reason = "tunnel probe $url: ${outcome.reason}"
+                    failures += reason
+                    LogUtil.w(AppConfig.TAG, "Latency test through the active tunnel failed: $reason")
+                }
+            }
+        }
+        return -1L
+    }
+
+    /**
+     * Fallback used when the local inbound cannot be reached: asks the running core to dial.
+     * @return The delay in milliseconds, or -1 with the reasons appended to [failures].
+     */
+    private suspend fun measureThroughCore(failures: MutableList<String>): Long {
+        for (url in listOf(SettingsManager.getDelayTestUrl(), SettingsManager.getDelayTestUrl(true))) {
+            currentCoroutineContext().ensureActive()
+            try {
+                val delay = coreController.measureDelay(url)
+                if (delay >= 0) return delay
+                val reason = "core measureDelay $url: no delay returned"
+                failures += reason
+                LogUtil.w(AppConfig.TAG, "Latency test through the core failed: $reason")
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (e: Exception) {
+                val reason = "core measureDelay $url: ${e.javaClass.simpleName}: ${e.message ?: "no detail"}"
+                failures += reason
+                LogUtil.w(AppConfig.TAG, "Latency test through the core failed: $reason", e)
+            }
+        }
+        return -1L
     }
 
     /**

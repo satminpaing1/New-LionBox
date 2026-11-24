@@ -74,8 +74,12 @@ internal enum class LionBoxTab(val label: Int, val icon: Int) {
 internal fun connectionAction(hasSelection: Boolean, isRunning: Boolean): MainAction? =
     if (hasSelection || isRunning) MainAction.ToggleService else null
 
-internal fun dashboardLatencyMillis(status: MainStatus, isRunning: Boolean, savedDelay: Long?): Long? =
-    if (isRunning) (status as? MainStatus.ConnectionTest)?.result?.delayMillis else savedDelay
+internal fun dashboardLatencyMillis(status: MainStatus, savedDelay: Long?): Long? =
+    when (status) {
+        is MainStatus.ConnectionTest -> status.result.delayMillis
+        is MainStatus.Testing -> null
+        else -> savedDelay
+    }
 
 @Composable
 internal fun LionBoxConsole(

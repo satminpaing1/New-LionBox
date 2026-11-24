@@ -6,6 +6,7 @@ import com.v2ray.ang.dto.UrlContentRequest
 import com.v2ray.ang.util.HttpUtil
 import com.v2ray.ang.util.JsonUtil
 import com.v2ray.ang.util.LogUtil
+import com.v2ray.ang.util.SocketProtector
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.Socket
@@ -33,6 +34,7 @@ object SpeedtestManager {
 
         try {
             socket = Socket()
+            SocketProtector.protect(socket)
             socket.connect(InetSocketAddress(url, port), timeoutMs)
 
             return System.currentTimeMillis() - start

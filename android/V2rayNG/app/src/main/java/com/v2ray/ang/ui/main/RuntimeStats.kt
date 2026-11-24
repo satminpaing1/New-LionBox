@@ -38,7 +38,7 @@ internal fun RuntimeStats(ui: MainUiState, selected: ServerRowUiModel?) {
     val unavailable = stringResource(R.string.runtime_unavailable)
     val uptime = if (ui.isRunning && stats != null) formatUptime(stats.uptimeSeconds) else unavailable
     val protocol = dashboardProtocol(selected?.profile)
-    val delay = dashboardLatencyMillis(ui.status, ui.isRunning, selected?.testDelayMillis)
+    val delay = dashboardLatencyMillis(ui.status, selected?.testDelayMillis)
     val latency = when {
         ui.isTesting -> stringResource(R.string.connection_test_testing)
         delay != null && delay >= 0 -> stringResource(R.string.server_test_delay_value, delay)
