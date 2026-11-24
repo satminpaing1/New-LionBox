@@ -154,38 +154,45 @@ main { flex: 1; padding: 18px 18px 110px; }
 .power-wrap {
   --power-emerald: #10B981;
   --power-teal: #0D9488;
-  --power-ring-inner: rgba(16, 185, 129, .2);
-  --power-ring-outer: rgba(16, 185, 129, .1);
+  --power-sky: #38BDF8;
+  --power-blue: #3B82F6;
   position: relative; isolation: isolate;
   width: 156px; height: 156px; margin: 10px auto 6px;
   display: grid; place-items: center;
 }
-.power-wrap::before, .power-wrap::after {
-  content: ''; position: absolute; border-radius: 50%; pointer-events: none;
-  border: 2px solid var(--power-ring-inner); width: 128px; height: 128px;
+.power-wrap .ripple {
+  position: absolute; inset: 0; margin: auto;
+  width: 108px; height: 108px; border-radius: 50%;
+  border: 2px solid var(--ripple); opacity: .22; pointer-events: none;
 }
-.power-wrap::after { width: 148px; height: 148px; border-color: var(--power-ring-outer); }
+.status-card[data-state="on"] .power-wrap .ripple { animation: power-ripple 2.6s ease-out infinite; }
+.status-card[data-state="on"] .power-wrap .ripple:nth-of-type(2) { animation-delay: .85s; }
+.status-card[data-state="on"] .power-wrap .ripple:nth-of-type(3) { animation-delay: 1.7s; }
+@keyframes power-ripple {
+  0% { transform: scale(.92); opacity: .7; }
+  100% { transform: scale(1.45); opacity: 0; }
+}
 .power-button {
   width: 108px; height: 108px;
   border-radius: 50%; border: 0;
-  background: linear-gradient(135deg, var(--power-emerald), var(--power-teal));
+  background: linear-gradient(135deg, var(--power-sky), var(--power-blue));
   color: #fff;
-  box-shadow: 0 12px 32px rgba(16, 185, 129, .3);
+  box-shadow: 0 12px 32px rgba(59, 130, 246, .3);
   font-size: 2.6rem;
   display: inline-grid; place-items: center;
   cursor: pointer;
-  transition: transform .18s var(--ease), box-shadow .3s var(--ease);
+  transition: transform .18s var(--ease), box-shadow .3s var(--ease), background .3s var(--ease);
 }
 .power-button svg { width: 1.4em; height: 1.4em; }
-.power-button:hover { transform: scale(1.04); box-shadow: 0 14px 38px rgba(16, 185, 129, .4); }
+.power-button:hover { transform: scale(1.04); box-shadow: 0 14px 38px rgba(59, 130, 246, .4); }
 .power-button:active { transform: scale(.97); }
-.power-button:focus-visible { outline-color: var(--power-teal); }
-.status-card[data-state="on"] .power-wrap::before,
-.status-card[data-state="on"] .power-wrap::after { animation: power-ripple 2.4s ease-in-out infinite; }
-@keyframes power-ripple { 50% { transform: scale(1.04); } }
+.power-button:focus-visible { outline-color: var(--power-blue); }
+.status-card[data-state="on"] .power-button {
+  background: linear-gradient(135deg, var(--power-emerald), var(--power-teal));
+  box-shadow: 0 12px 32px rgba(16, 185, 129, .35);
+}
 @media (prefers-reduced-motion: reduce) {
-  .status-card[data-state="on"] .power-wrap::before,
-  .status-card[data-state="on"] .power-wrap::after { animation: none; }
+  .status-card[data-state="on"] .power-wrap .ripple { animation: none; opacity: .5; }
   .power-button { transition: none; }
 }
 

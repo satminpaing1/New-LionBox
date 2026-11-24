@@ -292,8 +292,12 @@ private fun LionServerCard(row: ServerRowUiModel, selected: Boolean, onSelect: (
 @Composable
 private fun LionPowerButton(isRunning: Boolean, enabled: Boolean, onClick: () -> Unit) {
     val label = stringResource(if (isRunning) R.string.lion_tap_disconnect else R.string.lion_tap_connect)
+    val blueSky = Color(0xFF38BDF8)
+    val blueRoyal = Color(0xFF3B82F6)
     val emerald = Color(0xFF10B981)
     val teal = Color(0xFF0D9488)
+    val gradientStart = if (isRunning) emerald else blueSky
+    val gradientEnd = if (isRunning) teal else blueRoyal
     val opacity = if (enabled) 1f else 0.45f
     val wave = remember { androidx.compose.animation.core.Animatable(0f) }
     LaunchedEffect(isRunning) {
@@ -301,23 +305,32 @@ private fun LionPowerButton(isRunning: Boolean, enabled: Boolean, onClick: () ->
         if (isRunning && android.animation.ValueAnimator.areAnimatorsEnabled()) {
             while (isRunning) {
                 wave.snapTo(0f)
-                wave.animateTo(1f, androidx.compose.animation.core.tween(2400, easing = androidx.compose.animation.core.LinearEasing))
+                wave.animateTo(1f, androidx.compose.animation.core.tween(2600, easing = androidx.compose.animation.core.LinearEasing))
             }
         }
     }
+    val rippleColors = listOf(emerald, Color(0xFF06B6D4), blueSky, Color(0xFF8B5CF6))
     Box(Modifier.size(188.dp), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val radius = size.minDimension / 2
-            val pulse = ((1f - kotlin.math.cos(wave.value * 2f * Math.PI)) / 2f).toFloat()
-            drawCircle(androidx.compose.ui.graphics.Brush.radialGradient(listOf(emerald.copy(alpha = 0.3f * opacity), emerald.copy(alpha = 0f)), radius = radius))
-            drawCircle(emerald.copy(alpha = 0.2f * opacity), radius * (0.83f + 0.03f * pulse), style = Stroke(2.dp.toPx()))
-            drawCircle(emerald.copy(alpha = 0.1f * opacity), radius * (0.94f + 0.04f * pulse), style = Stroke(2.dp.toPx()))
+            if (isRunning) {
+                drawCircle(androidx.compose.ui.graphics.Brush.radialGradient(listOf(emerald.copy(alpha = 0.38f * opacity), emerald.copy(alpha = 0f)), radius = radius))
+                repeat(rippleColors.size - 1) { index ->
+                    val progress = (wave.value + index / 3f) % 1f
+                    drawCircle(rippleColors[index].copy(alpha = 0.6f * (1f - progress) * opacity), radius * (0.7f + 0.3f * progress), style = Stroke((3f - progress).dp.toPx()))
+                }
+                drawCircle(teal.copy(alpha = 0.5f * opacity), radius * 0.7f, style = Stroke(2.dp.toPx()))
+            } else {
+                drawCircle(androidx.compose.ui.graphics.Brush.radialGradient(listOf(blueRoyal.copy(alpha = 0.28f * opacity), blueRoyal.copy(alpha = 0f)), radius = radius))
+                drawCircle(blueRoyal.copy(alpha = 0.22f * opacity), radius * 0.83f, style = Stroke(2.dp.toPx()))
+                drawCircle(blueRoyal.copy(alpha = 0.12f * opacity), radius * 0.94f, style = Stroke(2.dp.toPx()))
+            }
         }
         Surface(onClick = onClick, enabled = enabled, shape = CircleShape,
             color = Color.Transparent,
             modifier = Modifier.size(136.dp).semantics { contentDescription = label; stateDescription = label }) {
             val symbol = Color.White.copy(alpha = opacity)
-            Box(Modifier.background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(emerald.copy(alpha = opacity), teal.copy(alpha = opacity)))), contentAlignment = Alignment.Center) {
+            Box(Modifier.background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(gradientStart.copy(alpha = opacity), gradientEnd.copy(alpha = opacity)))), contentAlignment = Alignment.Center) {
                 Canvas(Modifier.size(48.dp)) {
                     val stroke = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round)
                     drawArc(symbol, -50f, 280f, false, Offset(size.width * .15f, size.height * .2f), androidx.compose.ui.geometry.Size(size.width * .7f, size.height * .7f), style = stroke)
