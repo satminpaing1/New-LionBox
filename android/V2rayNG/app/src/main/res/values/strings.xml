@@ -17,6 +17,29 @@
     <string name="action_stop_service">Stop service</string>
     <string name="action_ok">OK</string>
     <string name="action_cancel">Cancel</string>
+    <string name="lion_update_card_title">Check Update</string>
+    <string name="lion_update_current_version">Current version v%1$s</string>
+    <string name="lion_update_checking">Checking for updates…</string>
+    <string name="lion_update_up_to_date">You’re on the latest version</string>
+    <string name="lion_update_check_failed">Couldn’t check for updates</string>
+    <string name="lion_update_tap_to_check">Tap to check for updates</string>
+    <string name="lion_update_title">Update Available</string>
+    <string name="lion_update_badge">v%1$s</string>
+    <string name="lion_update_installed_version">Installed v%1$s</string>
+    <string name="lion_update_release_notes">What’s new</string>
+    <string name="lion_update_no_notes">No release notes were provided for this version.</string>
+    <string name="lion_update_now">Update Now</string>
+    <string name="lion_update_downloading">Downloading update</string>
+    <string name="lion_update_download_cancel">Cancel download</string>
+    <string name="lion_update_download_failed">Download failed</string>
+    <string name="lion_update_retry">Try again</string>
+    <string name="lion_update_preparing">Download complete — opening the installer…</string>
+    <string name="lion_update_permission">Allow LionBox to install unknown apps, then tap Install again.</string>
+    <string name="lion_update_open_settings">Open settings</string>
+    <string name="lion_update_install_failed">Couldn’t start the installer</string>
+
+    <string name="lion_import_group_import">Import key / config</string>
+    <string name="lion_import_group_config">Add config</string>
     <string name="migration_fail">Data migration failed!</string>
     <string name="pull_down_to_refresh">Please pull down to refresh!</string>
 

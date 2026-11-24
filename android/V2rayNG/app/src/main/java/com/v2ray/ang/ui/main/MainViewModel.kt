@@ -18,6 +18,10 @@ import com.v2ray.ang.extension.delay
 import com.v2ray.ang.extension.isComplexType
 import com.v2ray.ang.extension.matchesPattern
 import com.v2ray.ang.extension.moveItem
+import com.v2ray.ang.handler.AppUpdateInstaller
+import com.v2ray.ang.handler.ApkInstallAttempt
+import com.v2ray.ang.handler.ApkInstallState
+import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.SubscriptionInfoParser
 import com.v2ray.ang.ui.base.BaseViewModel
 import com.v2ray.ang.util.LogUtil
@@ -79,12 +83,81 @@ class MainViewModel(
     private val updatePrompt = MainUpdatePrompt(
         check = { com.v2ray.ang.handler.UpdateCheckerManager.checkForUpdate(false) },
         now = { android.os.SystemClock.elapsedRealtime() },
-        onError = { LogUtil.e(AppConfig.TAG, "Automatic update check failed", it) }
+        onError = { LogUtil.e(AppConfig.TAG, "Automatic update check failed", it) },
+        dismissedVersion = { MmkvManager.decodeSettingsString(AppConfig.PREF_DISMISSED_UPDATE_VERSION) },
+        onDismissVersion = { MmkvManager.encodeSettings(AppConfig.PREF_DISMISSED_UPDATE_VERSION, it) }
     )
+    private val updateInstaller = AppUpdateInstaller(application)
     val availableUpdate = updatePrompt.result
+    val updateCheckStatus = updatePrompt.status
+    val apkInstallState = updateInstaller.state
 
     fun checkForAppUpdate() {
         viewModelScope.launch { updatePrompt.refresh() }
+    }
+
+    fun checkForAppUpdateManually() {
+        viewModelScope.launch { updatePrompt.checkManually() }
+    }
+
+    fun dismissAppUpdate() {
+        updatePrompt.dismiss()
+        resetAppUpdateInstall()
+    }
+
+    fun clearUpdateCheckStatus() {
+        updatePrompt.clearStatus()
+    }
+
+    fun downloadAppUpdate() {
+        val update = updatePrompt.result.value ?: return
+        val version = update.latestVersion ?: return
+        val url = update.downloadUrl ?: return
+        _installError.value = null
+        updateInstaller.startDownload(version, url)
+    }
+
+    fun cancelAppUpdateDownload() {
+        updateInstaller.cancelDownload()
+    }
+
+    private val _installPermissionRequired = MutableStateFlow(false)
+    val installPermissionRequired = _installPermissionRequired.asStateFlow()
+    private val _installError = MutableStateFlow<String?>(null)
+    val installError = _installError.asStateFlow()
+
+    /** Hands the downloaded APK to the package installer, or reports what blocked it. */
+    fun startAppUpdateInstall() {
+        _installError.value = null
+        handleInstallAttempt(updateInstaller.install(updateInstaller.state.value))
+    }
+
+    /** Called when the activity resumes after the "Install unknown apps" screen. */
+    fun resumePendingAppUpdateInstall() {
+        if (updateInstaller.state.value !is ApkInstallState.ReadyToInstall) return
+        if (!updateInstaller.canInstallPackages()) return
+        _installError.value = null
+        handleInstallAttempt(updateInstaller.install(updateInstaller.state.value))
+    }
+
+    private fun handleInstallAttempt(attempt: ApkInstallAttempt) {
+        when (attempt) {
+            ApkInstallAttempt.Launched -> {
+                _installPermissionRequired.value = false
+                updateInstaller.reset()
+            }
+            ApkInstallAttempt.NeedsInstallPermission -> _installPermissionRequired.value = true
+            is ApkInstallAttempt.Failed -> _installError.value = attempt.message
+        }
+    }
+
+    fun installPermissionIntent(): android.content.Intent = updateInstaller.unknownSourcesSettingsIntent()
+
+    fun resetAppUpdateInstall() {
+        updateInstaller.cancelDownload()
+        updateInstaller.reset()
+        _installPermissionRequired.value = false
+        _installError.value = null
     }
 
     // ---------- UI state ----------
@@ -289,7 +362,12 @@ class MainViewModel(
     // ---------- Action handler ----------
     fun onAction(action: MainAction) {
         when (action) {
-            MainAction.DismissAppUpdate -> updatePrompt.dismiss()
+            MainAction.DismissAppUpdate -> dismissAppUpdate()
+            MainAction.CheckAppUpdate -> checkForAppUpdateManually()
+            MainAction.DownloadAppUpdate -> downloadAppUpdate()
+            MainAction.CancelAppUpdateDownload -> cancelAppUpdateDownload()
+            MainAction.InstallAppUpdate -> startAppUpdateInstall()
+            MainAction.OpenInstallPermissionSettings -> Unit
             MainAction.Initialize -> initialize()
             MainAction.RefreshGroups -> setupGroupTab(forceRefresh = true)
             MainAction.TestAllServers -> testAllRealPing(true)

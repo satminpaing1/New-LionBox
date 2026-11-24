@@ -143,41 +143,69 @@
           '<span class="pill pill-mint" title="Latency ကို Android app တွင် တိုင်းတာသည်">—</span>' +
         '</button>' +
         '<div class="server-actions">' +
-          '<button class="circle-btn menu-btn" aria-label="Server menu" aria-haspopup="menu" aria-expanded="false"><span data-icon="dots"></span></button>' +
+          '<button class="circle-btn menu-btn" aria-label="Server menu" aria-haspopup="dialog" aria-expanded="false"><span data-icon="dots"></span></button>' +
           '<button class="circle-btn danger del" aria-label="Server ဖျက်မည်"><span data-icon="trash"></span></button>' +
-          '<div class="menu-panel server-menu" role="menu" hidden>' +
-            '<button type="button" role="menuitem" data-act="copy"><span data-icon="copy"></span>Key ကူးယူမည်</button>' +
-            '<button type="button" role="menuitem" class="danger" data-act="delete"><span data-icon="trash"></span>Server ဖျက်မည်</button>' +
-          '</div>' +
         '</div>' +
       '</div>';
     div.querySelectorAll('.select-server').forEach(btn => btn.addEventListener('click', () => { selectedRaw = p.raw; renderAll(); }));
     const menuBtn = div.querySelector('.menu-btn');
-    const menu = div.querySelector('.server-menu');
     menuBtn.addEventListener('click', (event) => {
       event.stopPropagation();
-      const willOpen = menu.hidden;
-      closeServerMenus();
-      menu.hidden = !willOpen;
-      menuBtn.setAttribute('aria-expanded', String(willOpen));
-    });
-    menu.addEventListener('click', (event) => event.stopPropagation());
-    menu.querySelector('[data-act="copy"]').addEventListener('click', () => {
-      closeServerMenus();
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(p.raw).then(
-          () => toast('Key ကို ကူးယူပြီးပါပြီ'),
-          () => toast('Key ကို ကူးယူနိုင်ခြင်းမရှိပါ')
-        );
-      } else {
-        toast('Key ကို ကူးယူနိုင်ခြင်းမရှိပါ');
-      }
+      openServerSheet(p, menuBtn);
     });
     div.querySelector('.del').addEventListener('click', (event) => { event.stopPropagation(); closeServerMenus(); removeProfile(p); });
-    menu.querySelector('[data-act="delete"]').addEventListener('click', () => { closeServerMenus(); removeProfile(p); });
     renderIcons(div);
     return div;
   }
+
+  let serverSheetProfile = null;
+  let serverSheetTrigger = null;
+
+  function openServerSheet(p, trigger) {
+    serverSheetProfile = p;
+    serverSheetTrigger = trigger || null;
+    if (trigger) trigger.setAttribute('aria-expanded', 'true');
+    const t = $('toast');
+    if (t) { t.hidden = true; clearTimeout(t._timer); }
+    $('server-sheet-name').textContent = displayName(p);
+    $('server-sheet').showModal();
+  }
+
+  function closeServerSheet() {
+    const sheet = $('server-sheet');
+    if (sheet && sheet.open) sheet.close();
+  }
+
+  function copyRaw(raw, message) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(raw).then(
+        () => toast(message),
+        () => toast('ကူးယူနိုင်ခြင်းမရှိပါ')
+      );
+    } else {
+      toast('ကူးယူနိုင်ခြင်းမရှိပါ');
+    }
+  }
+
+  $('server-sheet').querySelector('[data-act="copy"]').addEventListener('click', () => {
+    if (serverSheetProfile) copyRaw(serverSheetProfile.raw, 'Key ကို ကူးယူပြီးပါပြီ');
+    closeServerSheet();
+  });
+  $('server-sheet').querySelector('[data-act="link"]').addEventListener('click', () => {
+    if (serverSheetProfile) copyRaw(serverSheetProfile.raw, 'Profile link ကို ကူးယူပြီးပါပြီ');
+    closeServerSheet();
+  });
+  $('server-sheet').querySelector('[data-act="delete"]').addEventListener('click', () => {
+    const target = serverSheetProfile;
+    closeServerSheet();
+    if (target) removeProfile(target);
+  });
+  document.querySelectorAll('.close-sheet').forEach(b => b.addEventListener('click', closeServerSheet));
+  $('server-sheet').addEventListener('close', () => {
+    if (serverSheetTrigger) serverSheetTrigger.setAttribute('aria-expanded', 'false');
+    serverSheetTrigger = null;
+    serverSheetProfile = null;
+  });
 
   document.addEventListener('click', closeServerMenus);
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeServerMenus(); });

@@ -18,21 +18,15 @@ fun MainScreen(
 ) {
     val availableUpdate by mainViewModel.availableUpdate.collectAsStateWithLifecycle()
     availableUpdate?.let { update ->
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { onAction(MainAction.DismissAppUpdate) },
-            title = { androidx.compose.material3.Text(androidx.compose.ui.res.stringResource(com.v2ray.ang.R.string.update_check_for_update)) },
-            text = { androidx.compose.material3.Text(androidx.compose.ui.res.stringResource(com.v2ray.ang.R.string.update_new_version_found, update.latestVersion.orEmpty())) },
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = {
-                    onAction(MainAction.DismissAppUpdate)
-                    onNavigate(MainDestination.CheckUpdate)
-                }) { androidx.compose.material3.Text(androidx.compose.ui.res.stringResource(com.v2ray.ang.R.string.update_now)) }
-            },
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { onAction(MainAction.DismissAppUpdate) }) {
-                    androidx.compose.material3.Text(androidx.compose.ui.res.stringResource(com.v2ray.ang.R.string.action_cancel))
-                }
-            }
+        val installState by mainViewModel.apkInstallState.collectAsStateWithLifecycle()
+        val installPermissionRequired by mainViewModel.installPermissionRequired.collectAsStateWithLifecycle()
+        val installError by mainViewModel.installError.collectAsStateWithLifecycle()
+        AppUpdateDialog(
+            update = update,
+            installState = installState,
+            installPermissionRequired = installPermissionRequired,
+            installError = installError,
+            onAction = onAction
         )
     }
     val uiState by mainViewModel.uiState.collectAsStateWithLifecycle()

@@ -81,8 +81,8 @@ object GlassTints {
  * with a white hairline and zero elevation so no dark hardware shadow leaks through.
  */
 object GlassMenuTokens {
-    val surface = Color(0xFFEBF2FF)
-    val surfaceFillLight = Color(0xEBEBF2FF)
+    val surface = Color(0xFFF2F6FF)
+    val surfaceFillLight = Color(0xF2F2F6FF)
     val surfaceTop = Color(0xFFF0F6FF)
     val surfaceBottom = Color(0xFFF3EEFF)
     val ink = Color(0xFF0F172A)
@@ -91,17 +91,34 @@ object GlassMenuTokens {
     val destructiveText = Color(0xFFB91C1C)
     val actionTint = Color(0xFFDBEAFE)
     val destructiveTint = Color(0xFFFEE2E2)
+    val skyTint = Color(0xFFE0F2FE)
+    val indigoTint = Color(0xFFE0E7FF)
+    val indigoInk = Color(0xFF4338CA)
     val ripple = Color(0x59C7D2FE)
     val divider = Color(0x3394A3B8)
-    val radius = 20.dp
+    val radius = 24.dp
+    val borderWidth = 1.5.dp
     val itemVerticalPadding = 13.dp
+    val actionRowRadius = 14.dp
+    val actionRowHeight = 52.dp
+    val actionBadge = 32.dp
+    val scrim = Color(0x4D0F172A)
+    val cancelFill = Color(0x99E2E8F0)
+    val cancelInk = Color(0xFF334155)
+    val sectionLabel = Color(0xFF64748B)
+    val subtitle = Color(0xFF475569)
 
-    val darkSurface = Color(0xE62B3446)
+    val darkSurface = Color(0xF22B3446)
     val darkInk = Color(0xFFF1F5F9)
     val darkAction = Color(0xFF93C5FD)
     val darkDestructive = Color(0xFFFCA5A5)
     val darkBorder = Color(0x2EFFFFFF)
     val darkRipple = Color(0x4DC7D2FE)
+    val darkScrim = Color(0x990B1220)
+    val darkCancelFill = Color(0x33E2E8F0)
+    val darkCancelInk = Color(0xFFE2E8F0)
+    val darkSectionLabel = Color(0xFF94A3B8)
+    val darkSubtitle = Color(0xFFCBD5E1)
 }
 
 @Composable
@@ -131,6 +148,26 @@ fun glassMenuDestructiveTextColor(): Color =
 @Composable
 fun glassMenuRippleColor(): Color =
     if (LocalDarkTheme.current) GlassMenuTokens.darkRipple else GlassMenuTokens.ripple
+
+@Composable
+fun glassDialogScrimColor(): Color =
+    if (LocalDarkTheme.current) GlassMenuTokens.darkScrim else GlassMenuTokens.scrim
+
+@Composable
+fun glassDialogCancelFillColor(): Color =
+    if (LocalDarkTheme.current) GlassMenuTokens.darkCancelFill else GlassMenuTokens.cancelFill
+
+@Composable
+fun glassDialogCancelInkColor(): Color =
+    if (LocalDarkTheme.current) GlassMenuTokens.darkCancelInk else GlassMenuTokens.cancelInk
+
+@Composable
+fun glassDialogSectionLabelColor(): Color =
+    if (LocalDarkTheme.current) GlassMenuTokens.darkSectionLabel else GlassMenuTokens.sectionLabel
+
+@Composable
+fun glassDialogSubtitleColor(): Color =
+    if (LocalDarkTheme.current) GlassMenuTokens.darkSubtitle else GlassMenuTokens.subtitle
 
 /**
  * Material elevation is always zero on glass: a hardware shadow bleeds through a translucent fill

@@ -15,8 +15,10 @@
 <details class="appbar-menu" id="appbar-menu">
 <summary aria-label="မီနူး ဖွင့်မည်"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></summary>
 <div class="menu-panel" role="menu">
-<button type="button" id="menu-import" role="menuitem">Key / config ထည့်မည်</button>
-<a href="/public/vela-android.apk" download="LionBox.apk" role="menuitem" id="download-apk">LionBox APK ဒေါင်းလုဒ်</a>
+<span class="menu-label">Import</span>
+<button type="button" id="menu-import" role="menuitem"><span class="menu-badge" data-icon="plus"></span>Key / config ထည့်မည်</button>
+<span class="menu-label">More</span>
+<a href="/public/vela-android.apk" download="LionBox.apk" role="menuitem" id="download-apk"><span class="menu-badge" data-icon="download"></span>LionBox APK ဒေါင်းလုဒ်</a>
 </div>
 </details>
 </header>
@@ -78,15 +80,26 @@
 </div>
 </nav>
 </div></div>
-<dialog id="import-dialog" aria-labelledby="import-title">
+<dialog id="import-dialog" class="glass-sheet" aria-labelledby="import-title">
 <form id="import-form">
+<span class="sheet-handle" aria-hidden="true"></span>
 <div class="dialog-head"><h2 id="import-title">Key / config ထည့်မည်</h2><button type="button" class="icon-btn close-dialog" aria-label="ပိတ်မည်"><span data-icon="x"></span></button></div>
 <p class="muted">VLESS / ss:// key တစ်ကြောင်းစီ သို့မဟုတ် Shadowsocks JSON config ကို paste လုပ်ပါ။</p>
 <label class="input-label" for="vless-input">VLESS / Shadowsocks config</label>
 <textarea id="vless-input" rows="5" placeholder="vless://uuid@server:443?security=tls#My%20server" required spellcheck="false" aria-describedby="import-error"></textarea>
 <p class="form-hint">Key များကို ဤ browser ထဲတွင်သာ သိမ်းဆည်းမည်။</p><p id="import-error" class="error" role="alert"></p>
-<div class="dialog-actions"><button type="button" class="btn ghost close-dialog">မလုပ်တော့</button><button type="submit" class="btn primary" id="import-submit">Import</button></div>
+<div class="dialog-actions"><button type="button" class="btn pill-cancel close-dialog">မလုပ်တော့</button><button type="submit" class="btn pill-primary" id="import-submit">Import</button></div>
 </form>
+</dialog>
+<dialog id="server-sheet" class="glass-sheet" aria-labelledby="server-sheet-title">
+<span class="sheet-handle" aria-hidden="true"></span>
+<div class="dialog-head"><div><h2 id="server-sheet-title">LionBox</h2><p class="sheet-sub" id="server-sheet-name"></p></div><button type="button" class="icon-btn close-sheet" aria-label="ပိတ်မည်"><span data-icon="x"></span></button></div>
+<div class="sheet-list">
+<button type="button" class="sheet-row" data-act="copy"><span class="sheet-badge"><span data-icon="copy"></span></span>Key ကူးယူမည်</button>
+<button type="button" class="sheet-row" data-act="link"><span class="sheet-badge"><span data-icon="share"></span></span>Profile link ကူးယူမည်</button>
+<button type="button" class="sheet-row danger" data-act="delete"><span class="sheet-badge"><span data-icon="trash"></span></span>Server ဖျက်မည်</button>
+</div>
+<button type="button" class="btn pill-cancel close-sheet">မလုပ်တော့</button>
 </dialog>
 <div id="toast" class="toast" role="status" hidden></div>
 </body></html>

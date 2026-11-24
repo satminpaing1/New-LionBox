@@ -2,30 +2,31 @@ package com.v2ray.ang.ui.compose
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.TextSelectionColors
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -35,12 +36,13 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.v2ray.ang.R
 
 @Composable
@@ -49,7 +51,8 @@ fun ConfirmDialog(
     message: String,
     confirmText: String = stringResource(R.string.action_ok),
     dismissText: String? = stringResource(R.string.action_cancel),
-    confirmIcon: @Composable (() -> Unit)? = null,
+    confirmIconRes: Int? = null,
+    destructiveConfirm: Boolean = false,
     messageTextAlign: TextAlign = TextAlign.Start,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
@@ -62,42 +65,35 @@ fun ConfirmDialog(
         else confirmFocusRequester.requestFocus()
     }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(GlassMenuTokens.radius),
-        modifier = Modifier.border(1.dp, glassMenuBorderColor(), RoundedCornerShape(GlassMenuTokens.radius)),
-        title = title?.let { { Text(it) } },
-        text = {
-            Text(
-                text = message,
-                modifier = Modifier.fillMaxWidth(),
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = messageTextAlign
-            )
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(); onDismiss() },
-                modifier = Modifier.focusRequester(confirmFocusRequester)
-            ) {
-                confirmIcon?.invoke()
-                if (confirmIcon != null) Spacer(Modifier.width(8.dp))
-                Text(confirmText)
-            }
-        },
-        dismissButton = dismissText?.let { text ->
-            {
-                TextButton(
+    GlassDialog(onDismissRequest = onDismiss) {
+        if (title != null) GlassDialogHeader(title)
+        Text(
+            text = message,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+            fontSize = 14.sp,
+            lineHeight = 21.sp,
+            color = glassMenuItemInkColor(),
+            textAlign = messageTextAlign
+        )
+        Spacer(Modifier.height(18.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (dismissText != null) {
+                GlassDialogPillButton(
+                    text = dismissText,
                     onClick = onDismiss,
-                    modifier = Modifier.focusRequester(dismissFocusRequester)
-                ) {
-                    Text(text)
-                }
+                    modifier = Modifier.weight(1f).focusRequester(dismissFocusRequester)
+                )
             }
-        },
-        containerColor = glassMenuSurfaceColor(),
-        tonalElevation = 0.dp
-    )
+            GlassDialogPillButton(
+                text = confirmText,
+                onClick = { onConfirm(); onDismiss() },
+                modifier = Modifier.weight(1f).focusRequester(confirmFocusRequester),
+                primary = !destructiveConfirm,
+                destructive = destructiveConfirm,
+                leadingIcon = confirmIconRes
+            )
+        }
+    }
 }
 
 @Composable
@@ -111,13 +107,8 @@ fun DeleteConfirmDialog(
         message = if (itemName.isNullOrBlank()) message else "$message\n\n$itemName",
         messageTextAlign = TextAlign.Center,
         confirmText = stringResource(R.string.action_delete),
-        confirmIcon = {
-            Icon(
-                painter = painterResource(R.drawable.ic_delete_24dp),
-                contentDescription = null,
-                modifier = Modifier.size(18.dp)
-            )
-        },
+        confirmIconRes = R.drawable.ic_delete_24dp,
+        destructiveConfirm = true,
         onConfirm = onConfirm,
         onDismiss = onDismiss
     )
@@ -140,47 +131,52 @@ fun InputDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(GlassMenuTokens.radius),
-        modifier = Modifier.border(1.dp, glassMenuBorderColor(), RoundedCornerShape(GlassMenuTokens.radius)),
-        title = { Text(title) },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                fields.forEachIndexed { index, field ->
-                    OutlinedTextField(
-                        value = field.value,
-                        onValueChange = { onFieldChange(index, it) },
-                        label = { Text(field.label) },
-                        singleLine = false,
-                        maxLines = 5,
-                        visualTransformation = field.visualTransformation,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            cursorColor = MaterialTheme.colorScheme.secondary,
-                            selectionColors = TextSelectionColors(
-                                handleColor = MaterialTheme.colorScheme.secondary,
-                                backgroundColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f)
-                            )
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+    GlassDialog(onDismissRequest = onDismiss) {
+        GlassDialogHeader(title)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 380.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            fields.forEachIndexed { index, field ->
+                OutlinedTextField(
+                    value = field.value,
+                    onValueChange = { onFieldChange(index, it) },
+                    label = { Text(field.label) },
+                    singleLine = field.singleLine,
+                    maxLines = if (field.singleLine) 1 else 5,
+                    visualTransformation = field.visualTransformation,
+                    shape = RoundedCornerShape(14.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        cursorColor = GlassMenuTokens.action,
+                        selectionColors = TextSelectionColors(
+                            handleColor = GlassMenuTokens.action,
+                            backgroundColor = GlassMenuTokens.action.copy(alpha = 0.4f)
+                        )
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onConfirm) { Text(confirmText) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(dismissText) }
-        },
-        containerColor = glassMenuSurfaceColor(),
-        tonalElevation = 0.dp
-    )
+        }
+        Spacer(Modifier.height(18.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            GlassDialogPillButton(
+                text = dismissText,
+                onClick = onDismiss,
+                modifier = Modifier.weight(1f)
+            )
+            GlassDialogPillButton(
+                text = confirmText,
+                onClick = onConfirm,
+                modifier = Modifier.weight(1f),
+                primary = true
+            )
+        }
+    }
 }
 
 @Composable
@@ -189,11 +185,15 @@ fun QRCodeDialog(
     onDismiss: () -> Unit
 ) {
     if (bitmap == null) return
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(GlassMenuTokens.radius),
-        modifier = Modifier.border(1.dp, glassMenuBorderColor(), RoundedCornerShape(GlassMenuTokens.radius)),
-        text = {
+    GlassDialog(onDismissRequest = onDismiss) {
+        GlassDialogHeader(stringResource(R.string.acc_qr_code))
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .background(Color.White, RoundedCornerShape(18.dp))
+                .padding(12.dp),
+            contentAlignment = Alignment.Center
+        ) {
             Image(
                 bitmap = bitmap.asImageBitmap(),
                 contentDescription = stringResource(R.string.acc_qr_code),
@@ -201,13 +201,13 @@ fun QRCodeDialog(
                     .fillMaxWidth()
                     .aspectRatio(1f)
             )
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
-        },
-        containerColor = glassMenuSurfaceColor(),
-        tonalElevation = 0.dp
-    )
+        }
+        Spacer(Modifier.height(18.dp))
+        GlassDialogPillButton(
+            text = stringResource(R.string.action_close),
+            onClick = onDismiss
+        )
+    }
 }
 
 /**
@@ -225,51 +225,47 @@ fun <T> SelectListDialog(
     selectedOption: T? = null,
     showRadio: Boolean = false
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(GlassMenuTokens.radius),
-        modifier = Modifier.border(1.dp, glassMenuBorderColor(), RoundedCornerShape(GlassMenuTokens.radius)),
-        title = title?.let { { Text(it) } },
-        text = {
-            LazyColumn {
-                items(options) { option ->
-                    val isSelected = option == selectedOption
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .then(
-                                if (showRadio) Modifier.selectable(
-                                    selected = isSelected,
-                                    onClick = { onSelected(option) },
-                                    role = Role.RadioButton
-                                ) else Modifier.clickable { onSelected(option) }
-                            )
-                            .padding(vertical = 12.dp, horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (showRadio) {
-                            RadioButton(
-                                selected = isSelected,
-                                onClick = null
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                        }
-                        Text(
-                            text = optionText(option),
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f)
-                        )
+    GlassDialog(onDismissRequest = onDismiss) {
+        if (title != null) GlassDialogHeader(title)
+        LazyColumn(Modifier.heightIn(max = 360.dp)) {
+            items(options) { option ->
+                val isSelected = option == selectedOption
+                val rowModifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (showRadio) Modifier.selectable(
+                            selected = isSelected,
+                            onClick = { onSelected(option) },
+                            role = Role.RadioButton
+                        ) else Modifier.clickable { onSelected(option) }
+                    )
+                    .background(
+                        if (isSelected) GlassTints.periwinkle.copy(alpha = 0.75f) else Color.Transparent,
+                        RoundedCornerShape(GlassMenuTokens.actionRowRadius)
+                    )
+                    .padding(vertical = 10.dp, horizontal = 12.dp)
+                Row(
+                    modifier = rowModifier,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (showRadio) {
+                        RadioButton(selected = isSelected, onClick = null)
+                        Spacer(modifier = Modifier.width(10.dp))
                     }
+                    Text(
+                        text = optionText(option),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = glassMenuItemInkColor(),
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.action_cancel))
-            }
-        },
-        containerColor = glassMenuSurfaceColor(),
-        tonalElevation = 0.dp
-    )
+        }
+        Spacer(Modifier.height(12.dp))
+        GlassDialogPillButton(
+            text = stringResource(R.string.action_cancel),
+            onClick = onDismiss
+        )
+    }
 }

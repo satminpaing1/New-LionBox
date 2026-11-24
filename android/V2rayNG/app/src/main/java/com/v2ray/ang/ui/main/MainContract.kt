@@ -35,6 +35,11 @@ data class MainUiState(
  */
 sealed interface MainAction {
     data object DismissAppUpdate : MainAction
+    data object CheckAppUpdate : MainAction
+    data object DownloadAppUpdate : MainAction
+    data object CancelAppUpdateDownload : MainAction
+    data object InstallAppUpdate : MainAction
+    data object OpenInstallPermissionSettings : MainAction
     data object Initialize : MainAction
     data object RefreshGroups : MainAction
     data object ToggleService : MainAction

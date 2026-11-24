@@ -44,6 +44,7 @@ import com.v2ray.ang.ui.compose.GlassDropdownMenu
 import com.v2ray.ang.ui.compose.GlassDropdownMenuItem
 import com.v2ray.ang.ui.compose.GlassMenuTokens
 import com.v2ray.ang.ui.compose.GlassTokens
+import com.v2ray.ang.ui.compose.GlassTints
 import com.v2ray.ang.ui.compose.glassMenuBorderColor
 import com.v2ray.ang.ui.compose.glassMenuSurfaceColor
 import com.v2ray.ang.ui.compose.LocalDarkTheme
@@ -135,9 +136,12 @@ internal fun LionBoxConsole(
                     IconButton(onClick = { importMenu = true }, enabled = !isLoading) {
                         Icon(painterResource(R.drawable.ic_add_24dp), stringResource(R.string.menu_item_add_config), tint = glassTextPrimary())
                     }
-                    GlassDropdownMenu(expanded = importMenu, onDismissRequest = { importMenu = false }) {
-                        GlassDropdownMenuItem(text = { Text(stringResource(R.string.lion_paste)) }, onClick = { importMenu = false; importVisible = true })
-                        ImportMenuContent { importMenu = false; onAction(it) }
+                    if (importMenu) {
+                        ImportOptionsSheet(
+                            onPaste = { importMenu = false; importVisible = true },
+                            onAction = { importMenu = false; onAction(it) },
+                            onDismissRequest = { importMenu = false }
+                        )
                     }
                 }
                 Box {
@@ -334,21 +338,17 @@ internal fun LionBoxConsole(
                             color = glassTextPrimary()
                         )
                     }
-                    items(listOf(MainDestination.Settings, MainDestination.Subscriptions, MainDestination.PerAppProxy, MainDestination.Routing, MainDestination.UserAssets, MainDestination.BackupRestore, MainDestination.About)) { destination ->
+                    items(listOf(MainDestination.Settings, MainDestination.Subscriptions, MainDestination.PerAppProxy, MainDestination.Routing, MainDestination.UserAssets, MainDestination.BackupRestore)) { destination ->
                         ConsoleCard(shape = RoundedCornerShape(20.dp)) {
-                            Row(
-                                Modifier.fillMaxWidth().clickable(role = Role.Button) { onNavigate(destination) }.padding(horizontal = 18.dp, vertical = 18.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(14.dp)
-                            ) {
-                                Box(
-                                    Modifier.size(40.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(painterResource(destination.iconRes), null, Modifier.size(21.dp), tint = colors.primary)
-                                }
-                                Text(stringResource(destination.labelRes), fontSize = 16.sp, fontWeight = FontWeight.Medium, color = glassTextPrimary())
-                            }
+                            SettingsRow(destination, onNavigate)
+                        }
+                    }
+                    item {
+                        UpdateCheckCard(mainViewModel = mainViewModel, onAction = onAction)
+                    }
+                    item {
+                        ConsoleCard(shape = RoundedCornerShape(20.dp)) {
+                            SettingsRow(MainDestination.About, onNavigate)
                         }
                     }
                 }
@@ -378,6 +378,85 @@ internal fun LionBoxConsole(
 @Composable
 private fun ConsoleCard(shape: RoundedCornerShape = RoundedCornerShape(24.dp), content: @Composable () -> Unit) {
     GlassCard(shape = shape, content = content)
+}
+
+@Composable
+private fun SettingsRow(destination: MainDestination, onNavigate: (MainDestination) -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Row(
+        Modifier.fillMaxWidth().clickable(role = Role.Button) { onNavigate(destination) }.padding(horizontal = 18.dp, vertical = 18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Box(
+            Modifier.size(40.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(painterResource(destination.iconRes), null, Modifier.size(21.dp), tint = colors.primary)
+        }
+        Text(stringResource(destination.labelRes), fontSize = 16.sp, fontWeight = FontWeight.Medium, color = glassTextPrimary())
+    }
+}
+
+/** Settings card that checks releases by hand and reports the installed version. */
+@Composable
+private fun UpdateCheckCard(mainViewModel: MainViewModel, onAction: (MainAction) -> Unit) {
+    val status by mainViewModel.updateCheckStatus.collectAsStateWithLifecycle()
+    val statusText = when (val current = status) {
+        is UpdateCheckStatus.Checking -> stringResource(R.string.lion_update_checking)
+        is UpdateCheckStatus.UpToDate -> stringResource(R.string.lion_update_up_to_date)
+        is UpdateCheckStatus.Failed -> stringResource(R.string.lion_update_check_failed)
+        UpdateCheckStatus.Idle -> stringResource(R.string.lion_update_tap_to_check)
+    }
+    GlassCard(shape = RoundedCornerShape(20.dp), tint = GlassTints.iceBlue, tintAlpha = 0.65f) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Button) {
+                    if (status !is UpdateCheckStatus.Checking) onAction(MainAction.CheckAppUpdate)
+                }
+                .padding(horizontal = 18.dp, vertical = 18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
+                Icon(
+                    painterResource(R.drawable.ic_check_update_24dp),
+                    null,
+                    Modifier.size(21.dp),
+                    tint = GlassMenuTokens.action
+                )
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    stringResource(R.string.lion_update_card_title),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = glassTextPrimary()
+                )
+                Text(
+                    statusText,
+                    fontSize = 12.sp,
+                    color = glassTextSecondary(),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            if (status is UpdateCheckStatus.Checking) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = GlassMenuTokens.action
+                )
+            } else {
+                Text(
+                    stringResource(R.string.lion_update_badge, com.v2ray.ang.BuildConfig.VERSION_NAME),
+                    fontSize = 12.sp,
+                    color = glassTextSecondary()
+                )
+            }
+        }
+    }
 }
 
 @Composable

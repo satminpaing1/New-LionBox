@@ -74,7 +74,7 @@ class ThemeColorsTest {
 
     @Test
     fun `popup menus and dialogs use the frosted glass palette`() {
-        assertEquals(Color(0xFFEBF2FF), GlassMenuTokens.surface, "menu surface is cool ice-blue")
+        assertEquals(Color(0xFFF2F6FF), GlassMenuTokens.surface, "dialog surface is cool ice-blue")
         assertEquals(Color(0xFF0F172A), GlassMenuTokens.ink, "menu text is deep navy")
         assertEquals(Color(0xFF2563EB), GlassMenuTokens.action, "normal menu icons are royal blue")
         assertEquals(Color(0xFFDC2626), GlassMenuTokens.destructive, "delete icons are crimson")
@@ -82,10 +82,13 @@ class ThemeColorsTest {
         assertEquals(Color(0x3394A3B8), GlassMenuTokens.divider, "dividers are 20% slate")
         assertEquals(Color(0xFFDBEAFE), GlassMenuTokens.actionTint, "3-dot circle is pastel periwinkle")
         assertEquals(Color(0xFFFEE2E2), GlassMenuTokens.destructiveTint, "trash circle is pastel rose")
-        assertEquals(20.dp, GlassMenuTokens.radius, "menus and dialogs use 20dp corners")
-        assertEquals(0xEB, (GlassMenuTokens.surfaceFillLight.alpha * 255).toInt(), "menu frost sits at about 92%")
+        assertEquals(24.dp, GlassMenuTokens.radius, "dialogs, sheets and menus use 24dp corners")
+        assertEquals(1.5.dp, GlassMenuTokens.borderWidth, "glass containers use a 1.5dp white hairline")
+        assertEquals(14.dp, GlassMenuTokens.actionRowRadius, "dialog action rows use 14dp corners")
+        assertEquals(0x4D, (GlassMenuTokens.scrim.alpha * 255).toInt(), "dialog scrim is 30% light slate")
+        assertEquals(0xF2, (GlassMenuTokens.surfaceFillLight.alpha * 255).toInt(), "dialog frost sits at 95%")
 
-        val surface = Color(0xFFEBF2FF)
+        val surface = Color(0xFFF2F6FF)
         assertTrue(contrast(GlassMenuTokens.ink, surface) >= 4.5, "menu ink is readable on the frost")
         assertTrue(
             contrast(GlassMenuTokens.destructiveText, surface) >= 4.5,

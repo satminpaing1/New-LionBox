@@ -101,6 +101,7 @@ class MainActivity : HelperBaseComponentActivity() {
     override fun onResume() {
         super.onResume()
         mainViewModel.checkForAppUpdate()
+        mainViewModel.resumePendingAppUpdateInstall()
     }
 
     @Composable
@@ -123,6 +124,7 @@ class MainActivity : HelperBaseComponentActivity() {
                     is MainAction.ShareClipboard -> shareToClipboard(action.guid)
                     is MainAction.ShareFullContent -> shareFullContentAsync(action.guid)
                     is MainAction.OpenSubscriptionLink -> openSubscriptionLink(action.url)
+                    MainAction.OpenInstallPermissionSettings -> startActivity(mainViewModel.installPermissionIntent())
                     else -> mainViewModel.onAction(action)
                 }
             },
