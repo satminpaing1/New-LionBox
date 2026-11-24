@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="LionBox">
+  <g>
+    <path d="M112 140 L180 84 L332 84 L400 140 L374 300 L256 456 L138 300 Z" fill="#111A25"/>
+    <path d="M256 84 L332 84 L400 140 L374 300 L256 300 Z" fill="#1B2634"/>
+    <path d="M256 456 L374 300 L256 300 Z" fill="#141D29"/>
+    <path d="M180 84 L332 84 L400 140 L368 156 L144 156 L112 140 Z" fill="#3B4956"/>
+    <path d="M332 84 L400 140 L386 140 L318 84 Z" fill="#FFFFFF" opacity=".14"/>
+    <path d="M112 140 L138 300 L256 456 L268 436 L163 294 L144 156 Z" fill="#14544C"/>
+    <path d="M112 140 L138 300 L256 456" fill="none" stroke="#5EEAD4" stroke-width="7" stroke-linejoin="round"/>
+  </g>
+</svg>

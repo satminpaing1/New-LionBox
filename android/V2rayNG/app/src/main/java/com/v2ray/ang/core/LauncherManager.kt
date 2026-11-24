@@ -17,6 +17,7 @@ import com.v2ray.ang.service.CoreProxyOnlyService
 import com.v2ray.ang.service.CoreRootService
 import com.v2ray.ang.service.CoreVpnService
 import com.v2ray.ang.util.LogUtil
+import com.v2ray.ang.util.LogcatBuffer
 import com.v2ray.ang.util.Utils
 
 object LauncherManager {
@@ -53,6 +54,7 @@ object LauncherManager {
 
     fun stopService(context: Context) {
         //context.toast(R.string.toast_services_stop)
+        LogcatBuffer.clearForNewSession()
         MessageHelper.sendMsg2Service(context, AppConfig.MSG_STATE_STOP, "")
     }
 
@@ -94,6 +96,9 @@ object LauncherManager {
         }
 
         SettingsManager.refreshRuntimeSocksPort()
+
+        // A new session must not inherit the previous session's log buffer.
+        LogcatBuffer.clearForNewSession()
 
         if (config.insecure == true && config.pinnedCA256.isNullOrEmpty()) {
             context.toastError(R.string.toast_allow_insecure_deprecated)

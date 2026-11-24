@@ -176,6 +176,8 @@ class MainActivity : HelperBaseComponentActivity() {
     private fun handleFabAction() {
         if (mainViewModel.uiState.value.isRunning) {
             LauncherManager.stopService(this)
+        } else if (mainViewModel.uiState.value.autoSelectFastest) {
+            mainViewModel.connectWithFastestServer { requestServiceStart() }
         } else {
             requestServiceStart()
         }
@@ -285,6 +287,7 @@ class MainActivity : HelperBaseComponentActivity() {
 
     private fun setSelectServer(guid: String) {
         val selected = mainViewModel.uiState.value.selectedGuid
+        mainViewModel.setAutoSelectFastest(false)
         if (guid != selected) {
             mainViewModel.updateSelectedGuid(guid)
             LauncherManager.restartService(this)

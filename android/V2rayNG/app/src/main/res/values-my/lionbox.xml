@@ -21,4 +21,6 @@
     <string name="lion_selected">ရွေးထားသော ဆာဗာ</string>
     <string name="lion_select">ဆာဗာရွေးရန်</string>
     <string name="lion_logs_empty">မှတ်တမ်း မရှိသေးပါ။ ချိတ်ဆက်မှုမှတ်တမ်းများ ဒီနေရာမှာ ပေါ်လာပါမည်။</string>
+    <string name="lion_delete_server_title">ဆာဗာ ဖျက်မည်လား။</string>
+    <string name="lion_delete_server_message">\'%1$s\' ကို ဖျက်ရန် သေချာပါသလား။\n\nဒီဖုန်းထဲမှာ သိမ်းထားတဲ့ ဆာဗာကို ဖယ်ရှားပါမည်။</string>
 </resources>

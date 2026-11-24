@@ -124,6 +124,13 @@ class MainRepository(
     override fun getConfirmRemove(): Boolean =
         MmkvManager.decodeSettingsBool(AppConfig.PREF_CONFIRM_REMOVE, false)
 
+    override fun getAutoSelectFastest(): Boolean =
+        MmkvManager.decodeSettingsBool(AppConfig.PREF_AUTO_SELECT_FASTEST, false)
+
+    override fun setAutoSelectFastest(enabled: Boolean) {
+        MmkvManager.encodeSettings(AppConfig.PREF_AUTO_SELECT_FASTEST, enabled)
+    }
+
     override fun getDoubleColumnDisplay(): Boolean =
         MmkvManager.decodeSettingsBool(AppConfig.PREF_DOUBLE_COLUMN_DISPLAY, false)
 

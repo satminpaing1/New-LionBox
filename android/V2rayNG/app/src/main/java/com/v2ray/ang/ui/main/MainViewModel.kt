@@ -25,6 +25,7 @@ import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.SubscriptionInfoParser
 import com.v2ray.ang.ui.base.BaseViewModel
 import com.v2ray.ang.util.LogUtil
+import com.v2ray.ang.util.LogcatBuffer
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
@@ -44,8 +45,18 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.ConcurrentHashMap
 import java.util.regex.PatternSyntaxException
+
+private const val AUTO_CONNECT_TIMEOUT_MS = 20_000L
+
+/** Lowest positive latency among [candidates], or null when nothing answered. */
+internal fun fastestServerGuid(results: Map<String, Long>, candidates: Collection<String>): String? =
+    candidates.asSequence()
+        .mapNotNull { guid -> results[guid]?.takeIf { it > 0L }?.let { guid to it } }
+        .minByOrNull { it.second }
+        ?.first
 
 private fun applyTestDelayResults(
     servers: List<ServersCache>,
@@ -166,7 +177,8 @@ class MainViewModel(
             selectedGroupId = dataSource.getSelectedSubscriptionId(),
             selectedGuid = dataSource.getSelectServer(),
             confirmRemove = dataSource.getConfirmRemove(),
-            doubleColumnDisplay = dataSource.getDoubleColumnDisplay()
+            doubleColumnDisplay = dataSource.getDoubleColumnDisplay(),
+            autoSelectFastest = dataSource.getAutoSelectFastest()
         )
     )
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -190,6 +202,12 @@ class MainViewModel(
     private var reloadJob: Job? = null
     private var testResultFlushJob: Job? = null
     private val pendingTestResults = linkedMapOf<String, Long>()
+
+    // ---------- Auto (fastest server) selection ----------
+    private var autoConnectJob: Job? = null
+    private var autoConnectWaiter: CompletableDeferred<Unit>? = null
+    private var autoConnectRequestId: String? = null
+    private val autoConnectResults = linkedMapOf<String, Long>()
 
     private val testRequests = MainTestRequests()
     private var bulkTestJob: Job? = null
@@ -231,7 +249,11 @@ class MainViewModel(
                 updateRunningState(false)
             }
 
-            MainServiceEvent.StateStopSuccess -> updateRunningState(false)
+            MainServiceEvent.StateStopSuccess -> {
+                // A finished session must not leave its logs behind for the next one.
+                LogcatBuffer.clearForNewSession()
+                updateRunningState(false)
+            }
             is MainServiceEvent.MeasureDelayResult -> {
                 if (!uiState.value.isRunning || !testRequests.completeCurrent(event.requestId)) return
                 _uiState.update { it.copy(isTesting = testRequests.isTesting, status = MainStatus.ConnectionTest(event.result)) }
@@ -251,6 +273,7 @@ class MainViewModel(
 
             is MainServiceEvent.MeasureConfigFinish -> {
                 val request = testRequests.bulk?.takeIf { it.id == event.requestId } ?: return
+                if (event.requestId == autoConnectRequestId) autoConnectWaiter?.complete(Unit)
                 val scheduledFlush = testResultFlushJob
                 testResultFlushJob = viewModelScope.launch {
                     scheduledFlush?.cancelAndJoin()
@@ -274,6 +297,7 @@ class MainViewModel(
     }
 
     private fun queueTestResult(result: RealPingResult, request: MainTestRequests.Bulk) {
+        if (request.id == autoConnectRequestId) autoConnectResults[result.guid] = result.delayMillis
         pendingTestResults[result.guid] = result.delayMillis
         if (testResultFlushJob?.isActive == true) return
 
@@ -411,6 +435,7 @@ class MainViewModel(
             MainAction.ExportAll -> exportAllAsync()
             is MainAction.SelectGroup -> subscriptionIdChanged(action.groupId)
             is MainAction.SelectServer -> updateSelectedGuid(action.guid)
+            is MainAction.SetAutoSelectFastest -> setAutoSelectFastest(action.enabled)
             is MainAction.RemoveServer -> removeServerAndRefresh(action.guid)
             is MainAction.Search -> filterConfig(action.query)
             is MainAction.ImportBatchConfig -> importBatchConfig(action.configText)
@@ -461,7 +486,8 @@ class MainViewModel(
         _uiState.update {
             it.copy(
                 confirmRemove = dataSource.getConfirmRemove(),
-                doubleColumnDisplay = dataSource.getDoubleColumnDisplay()
+                doubleColumnDisplay = dataSource.getDoubleColumnDisplay(),
+                autoSelectFastest = dataSource.getAutoSelectFastest()
             )
         }
     }
@@ -841,7 +867,7 @@ class MainViewModel(
     }
 
     fun subscriptionIdChanged(id: String) {
-        if (_uiState.value.groups.none { it.id == id }) return
+        if (id.isNotEmpty() && _uiState.value.groups.none { it.id == id }) return
         mutableServerGroupState(id)
         if (uiState.value.selectedGroupId != id) {
             dataSource.setSelectedSubscriptionId(id)
@@ -899,8 +925,69 @@ class MainViewModel(
     }
 
     fun updateSelectedGuid(guid: String) {
+        if (uiState.value.autoSelectFastest) setAutoSelectFastest(false)
         dataSource.setSelectServer(guid)
         _uiState.update { it.copy(selectedGuid = guid) }
+    }
+
+    fun setAutoSelectFastest(enabled: Boolean) {
+        if (dataSource.getAutoSelectFastest() != enabled) dataSource.setAutoSelectFastest(enabled)
+        if (uiState.value.autoSelectFastest != enabled) {
+            _uiState.update { it.copy(autoSelectFastest = enabled) }
+        }
+    }
+
+    /**
+     * Tests every saved server, selects the working server with the lowest latency and then calls
+     * [onReady] so the caller can start the service. The current selection is kept when no server
+     * answers within [AUTO_CONNECT_TIMEOUT_MS].
+     */
+    fun connectWithFastestServer(onReady: () -> Unit) {
+        autoConnectJob?.cancel()
+        autoConnectJob = viewModelScope.launch {
+            val guids = withContext(ioDispatcher) { dataSource.getServerGuidList("") }
+            if (guids.size < 2) {
+                guids.firstOrNull()?.let { selectForAutoConnect(it) }
+                onReady()
+                return@launch
+            }
+            autoConnectResults.clear()
+            cancelAllPing()
+            val waiter = CompletableDeferred<Unit>()
+            autoConnectWaiter = waiter
+            val request = testRequests.beginBulk("")
+            autoConnectRequestId = request.id
+            _uiState.update { it.copy(isTesting = true, status = MainStatus.Testing) }
+            dataSource.sendMsg2TestService(
+                TestServiceMessage(
+                    key = AppConfig.MSG_MEASURE_CONFIG_START,
+                    subscriptionId = "",
+                    serverGuids = guids,
+                    onlyTcp = false
+                ),
+                request.id
+            )
+            val finished = withTimeoutOrNull(AUTO_CONNECT_TIMEOUT_MS) { waiter.await() } != null
+            if (autoConnectWaiter === waiter) autoConnectWaiter = null
+            if (autoConnectRequestId == request.id) autoConnectRequestId = null
+            if (!finished) {
+                cancelAllPing()
+            }
+            fastestServerGuid(autoConnectResults, guids)?.let { selectForAutoConnect(it) }
+            onReady()
+        }
+    }
+
+    private fun selectForAutoConnect(guid: String) {
+        val profile = dataSource.decodeServerConfig(guid) ?: return
+        dataSource.setSelectServer(guid)
+        if (uiState.value.selectedGroupId != profile.subscriptionId) {
+            dataSource.setSelectedSubscriptionId(profile.subscriptionId)
+        }
+        _uiState.update {
+            it.copy(selectedGuid = guid, selectedGroupId = profile.subscriptionId)
+        }
+        mutableServerGroupState(profile.subscriptionId)
     }
 
     fun refreshSelectedGuid() {

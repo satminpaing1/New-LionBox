@@ -10,7 +10,11 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,7 +42,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 import com.v2ray.ang.R
+import com.v2ray.ang.dto.GroupMapItem
 import com.v2ray.ang.ui.compose.GlassCard
 import com.v2ray.ang.ui.compose.GlassDropdownMenu
 import com.v2ray.ang.ui.compose.GlassDropdownMenuItem
@@ -101,7 +107,15 @@ internal fun LionBoxConsole(
     var moreMenu by remember { mutableStateOf(false) }
     val groupFlow = remember(uiState.selectedGroupId) { mainViewModel.serverGroupState(uiState.selectedGroupId) }
     val group by groupFlow.collectAsStateWithLifecycle()
+    val allGroupFlow = remember { mainViewModel.serverGroupState("") }
+    val allGroup by allGroupFlow.collectAsStateWithLifecycle()
     val selected = group.rows.firstOrNull { it.guid == uiState.selectedGuid }
+        ?: allGroup.rows.firstOrNull { it.guid == uiState.selectedGuid }
+    val openServersTab: () -> Unit = {
+        tab = LionBoxTab.Servers
+        query = ""
+        onAction(MainAction.Search(""))
+    }
     val colors = MaterialTheme.colorScheme
     val darkTheme = LocalDarkTheme.current
     LaunchedEffect(uiState.isRunning, uiState.selectedGuid) {
@@ -213,6 +227,18 @@ internal fun LionBoxConsole(
     ) { padding ->
         if (tab == LionBoxTab.Logs) {
             LionBoxLogs(Modifier.padding(padding))
+        } else if (tab == LionBoxTab.Servers) {
+            LionServersPage(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                uiState = uiState,
+                mainViewModel = mainViewModel,
+                isLoading = isLoading,
+                query = query,
+                onQueryChange = { query = it },
+                onAction = onAction,
+                onMore = onMore,
+                onRemove = onRemove
+            )
         } else {
             LazyColumn(
                 Modifier.fillMaxSize().padding(padding),
@@ -262,75 +288,50 @@ internal fun LionBoxConsole(
                     item(key = "traffic") { TrafficStats(uiState) }
                     item(key = "runtime") { RuntimeStats(uiState, selected) }
                 }
-                if (tab.canImport) {
-                    item {
-                        Button(
-                            onClick = { importVisible = true },
-                            enabled = !isLoading,
-                            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-                            shape = RoundedCornerShape(999.dp)
-                        ) {
-                            Icon(painterResource(R.drawable.ic_add_24dp), null)
-                            Spacer(Modifier.width(8.dp))
-                            Text(stringResource(R.string.lion_paste), fontSize = 15.sp, fontWeight = FontWeight.Medium)
-                        }
-                    }
-                }
-                if (tab == LionBoxTab.Dashboard || tab == LionBoxTab.Servers) {
-                    item {
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                stringResource(R.string.lion_servers),
-                                Modifier.weight(1f),
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = glassTextPrimary()
-                            )
-                            TextButton(onClick = { onAction(MainAction.TestAllServers) }, enabled = group.rows.isNotEmpty() && !uiState.isTesting) {
-                                Text(stringResource(R.string.lion_test), color = GlassTokens.accent)
-                            }
-                        }
-                    }
-                    if (uiState.groups.size > 1) item {
-                        var groupMenu by remember { mutableStateOf(false) }
-                        Box {
-                            OutlinedButton(
-                                onClick = { groupMenu = true },
-                                shape = RoundedCornerShape(999.dp),
-                                border = BorderStroke(1.dp, glassHairlineColor()),
-                                colors = ButtonDefaults.outlinedButtonColors(containerColor = glassSurfaceColor(), contentColor = glassTextPrimary())
-                            ) { Text(uiState.groups.firstOrNull { it.id == uiState.selectedGroupId }?.remarks.orEmpty()) }
-                            GlassDropdownMenu(expanded = groupMenu, onDismissRequest = { groupMenu = false }) {
-                                uiState.groups.forEach { entry ->
-                                    GlassDropdownMenuItem(text = { Text(entry.remarks) }, onClick = { groupMenu = false; onAction(MainAction.SelectGroup(entry.id)) })
+                if (tab == LionBoxTab.Dashboard) {
+                    item(key = "selected_server") {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    stringResource(R.string.lion_selected),
+                                    Modifier.weight(1f),
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = glassTextPrimary()
+                                )
+                                TextButton(onClick = openServersTab) {
+                                    Text(
+                                        stringResource(R.string.lion_change),
+                                        color = GlassTokens.accent,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
                                 }
                             }
-                        }
-                    }
-                    if (tab == LionBoxTab.Servers) item {
-                        OutlinedTextField(
-                            value = query,
-                            onValueChange = { query = it; onAction(MainAction.Search(it)) },
-                            label = { Text(stringResource(R.string.lion_search)) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(22.dp)
-                        )
-                    }
-                    if (group.rows.isEmpty()) item {
-                        ConsoleCard {
-                            Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Text(stringResource(if (query.isBlank()) R.string.lion_empty else R.string.lion_no_results), fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = glassTextPrimary())
-                                Text(stringResource(R.string.lion_empty_detail), fontSize = 14.sp, color = glassTextSecondary())
-                                if (tab.canImport) TextButton(onClick = { importVisible = true }, enabled = !isLoading) { Text(stringResource(R.string.lion_paste)) }
+                            if (selected == null) {
+                                ConsoleCard {
+                                    Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        Text(
+                                            stringResource(R.string.lion_dashboard_no_server),
+                                            fontSize = 17.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = glassTextPrimary()
+                                        )
+                                        Text(stringResource(R.string.lion_dashboard_no_server_detail), fontSize = 14.sp, color = glassTextSecondary())
+                                        TextButton(onClick = openServersTab) { Text(stringResource(R.string.lion_choose_server)) }
+                                    }
+                                }
+                            } else {
+                                LionServerCard(
+                                    selected,
+                                    selected = true,
+                                    autoBadge = uiState.autoSelectFastest,
+                                    onSelect = openServersTab,
+                                    onMore = { onMore(selected.guid, selected.profile) },
+                                    onRemove = { onRemove(selected.guid, selected.remarks) }
+                                )
                             }
                         }
-                    }
-                    items(group.rows, key = { it.guid }) { row ->
-                        LionServerCard(row, row.guid == uiState.selectedGuid,
-                            onSelect = { onAction(MainAction.SelectServer(row.guid)) },
-                            onMore = { onMore(row.guid, row.profile) },
-                            onRemove = { onRemove(row.guid, row.remarks) })
                     }
                 }
                 if (tab == LionBoxTab.Settings) {
@@ -471,7 +472,14 @@ private fun delayLabel(delay: Long?): String = when {
 }
 
 @Composable
-private fun LionServerCard(row: ServerRowUiModel, selected: Boolean, onSelect: () -> Unit, onMore: () -> Unit, onRemove: () -> Unit) {
+private fun LionServerCard(
+    row: ServerRowUiModel,
+    selected: Boolean,
+    onSelect: () -> Unit,
+    onMore: () -> Unit,
+    onRemove: () -> Unit,
+    autoBadge: Boolean = false
+) {
     val stateLabel = stringResource(if (selected) R.string.lion_selected else R.string.lion_select)
     val darkTheme = LocalDarkTheme.current
     val delay = row.testDelayMillis
@@ -499,12 +507,27 @@ private fun LionServerCard(row: ServerRowUiModel, selected: Boolean, onSelect: (
                 )
                 Text(
                     row.remarks,
+                    Modifier.weight(1f, fill = false),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = glassTextPrimary(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                if (autoBadge) {
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = if (darkTheme) Color(0x334338CA) else Color(0xFFDBEAFE)
+                    ) {
+                        Text(
+                            stringResource(R.string.lion_auto_badge),
+                            Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (darkTheme) Color(0xFFC7D2FE) else Color(0xFF1E40AF)
+                        )
+                    }
+                }
             }
             Row(
                 Modifier.fillMaxWidth(),
@@ -605,6 +628,9 @@ private fun CircleActionButton(
     }
 }
 
+private fun animatorsEnabled(): Boolean =
+    android.os.Build.VERSION.SDK_INT < 26 || android.animation.ValueAnimator.areAnimatorsEnabled()
+
 @Composable
 private fun LionPowerButton(isRunning: Boolean, enabled: Boolean, onClick: () -> Unit) {
     val label = stringResource(if (isRunning) R.string.lion_tap_disconnect else R.string.lion_tap_connect)
@@ -613,7 +639,7 @@ private fun LionPowerButton(isRunning: Boolean, enabled: Boolean, onClick: () ->
     val wave = remember { Animatable(0f) }
     LaunchedEffect(isRunning) {
         wave.snapTo(0f)
-        if (isRunning && android.animation.ValueAnimator.areAnimatorsEnabled()) {
+        if (isRunning && animatorsEnabled()) {
             while (isRunning) {
                 wave.snapTo(0f)
                 wave.animateTo(1f, tween(2800, easing = LinearEasing))
@@ -741,6 +767,282 @@ private fun LionBoxLogs(modifier: Modifier) {
                     Text(logs[index], fontSize = 12.sp, color = glassTextLabel())
                 }
             }
+        }
+    }
+}
+
+internal data class ServerTab(val groupId: String, val remarks: String)
+
+/** Default (single keys) first, then every imported subscription, in their saved order. */
+internal fun serverTabs(groups: List<GroupMapItem>, defaultLabel: String): List<ServerTab> =
+    buildList {
+        add(ServerTab("", defaultLabel))
+        groups.filter { it.id.isNotEmpty() }.forEach { add(ServerTab(it.id, it.remarks)) }
+    }
+
+/** Default (single keys) plus every imported subscription, side by side and swipeable. */
+@Composable
+private fun LionServersPage(
+    modifier: Modifier,
+    uiState: MainUiState,
+    mainViewModel: MainViewModel,
+    isLoading: Boolean,
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onAction: (MainAction) -> Unit,
+    onMore: (String, ProfileItem) -> Unit,
+    onRemove: (String, String) -> Unit
+) {
+    val darkTheme = LocalDarkTheme.current
+    val defaultLabel = stringResource(R.string.lion_tab_default)
+    val tabs = remember(uiState.groups, defaultLabel) { serverTabs(uiState.groups, defaultLabel) }
+    val pagerState = rememberPagerState(pageCount = { tabs.size })
+    val scope = rememberCoroutineScope()
+    val activeTab = tabs.getOrNull(pagerState.currentPage)
+
+    LaunchedEffect(pagerState.currentPage, tabs) {
+        val id = tabs.getOrNull(pagerState.currentPage)?.groupId ?: return@LaunchedEffect
+        if (id != uiState.selectedGroupId) onAction(MainAction.SelectGroup(id))
+    }
+    LaunchedEffect(uiState.selectedGroupId, tabs) {
+        val index = tabs.indexOfFirst { it.groupId == uiState.selectedGroupId }
+        if (index >= 0 && index != pagerState.currentPage) pagerState.scrollToPage(index)
+    }
+
+    Column(modifier) {
+        Column(
+            Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(R.string.lion_servers),
+                    Modifier.weight(1f),
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = glassTextPrimary()
+                )
+                TextButton(
+                    onClick = { onAction(MainAction.TestAllServers) },
+                    enabled = !uiState.isTesting &&
+                        activeTab?.groupId == uiState.selectedGroupId &&
+                        uiState.groups.any { it.id == activeTab.groupId }
+                ) {
+                    Text(stringResource(R.string.lion_test), color = GlassTokens.accent)
+                }
+            }
+            AutoSelectCard(
+                enabled = uiState.autoSelectFastest,
+                onClick = { onAction(MainAction.SetAutoSelectFastest(!uiState.autoSelectFastest)) }
+            )
+            OutlinedTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                placeholder = { Text(stringResource(R.string.lion_search), color = glassTextSecondary()) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(999.dp)
+            )
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Surface(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(999.dp),
+                    color = if (darkTheme) Color(0x24FFFFFF) else Color(0x8CFFFFFF),
+                    border = BorderStroke(1.dp, Color.White)
+                ) {
+                    LazyRow(
+                        Modifier.fillMaxWidth().padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        itemsIndexed(tabs) { index, tab ->
+                            val selectedTab = index == pagerState.currentPage
+                            val selectedLabel = stringResource(R.string.lion_tab_selected)
+                            Box(
+                                Modifier
+                                    .heightIn(min = 44.dp)
+                                    .widthIn(max = 168.dp)
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(
+                                        if (selectedTab) {
+                                            if (darkTheme) Color(0x334338CA) else Color(0xFFDBEAFE)
+                                        } else Color.Transparent
+                                    )
+                                    .clickable(role = Role.Tab) {
+                                        onAction(MainAction.SelectGroup(tab.groupId))
+                                        scope.launch { pagerState.animateScrollToPage(index) }
+                                    }
+                                    .semantics {
+                                        if (selectedTab) stateDescription = selectedLabel
+                                    }
+                                    .padding(horizontal = 14.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    tab.remarks,
+                                    fontSize = 13.sp,
+                                    fontWeight = if (selectedTab) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (selectedTab) {
+                                        if (darkTheme) Color(0xFFC7D2FE) else Color(0xFF1E40AF)
+                                    } else glassTextSecondary(),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+                }
+                val activeId = activeTab?.groupId.orEmpty()
+                if (activeId.isNotEmpty()) {
+                    CircleActionButton(
+                        icon = R.drawable.ic_refresh_24dp,
+                        label = stringResource(R.string.lion_update_subscription),
+                        background = if (darkTheme) Color(0x33DBEAFE) else Color(0xFFEEF2FF),
+                        iconTint = if (darkTheme) Color(0xFF93C5FD) else Color(0xFF1E40AF),
+                        onClick = { onAction(MainAction.UpdateGroupSubscription(activeId)) }
+                    )
+                }
+            }
+        }
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            verticalAlignment = Alignment.Top
+        ) { page ->
+            val tab = tabs.getOrNull(page) ?: return@HorizontalPager
+            ServerGroupPage(
+                tab = tab,
+                query = query,
+                uiState = uiState,
+                mainViewModel = mainViewModel,
+                isLoading = isLoading,
+                onAction = onAction,
+                onMore = onMore,
+                onRemove = onRemove
+            )
+        }
+    }
+}
+
+@Composable
+private fun AutoSelectCard(enabled: Boolean, onClick: () -> Unit) {
+    val darkTheme = LocalDarkTheme.current
+    val stateLabel = stringResource(if (enabled) R.string.lion_auto_on else R.string.lion_auto_off)
+    GlassCard(
+        shape = RoundedCornerShape(22.dp),
+        tint = GlassTints.iceBlue,
+        tintAlpha = 0.65f
+    ) {
+        Row(
+            Modifier.fillMaxWidth()
+                .clickable(role = Role.Switch, onClick = onClick)
+                .semantics {
+                    stateDescription = stateLabel
+                }
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Box(
+                Modifier.size(44.dp).background(
+                    if (enabled) {
+                        if (darkTheme) Color(0x334338CA) else Color(0xFFDBEAFE)
+                    } else if (darkTheme) Color(0x24FFFFFF) else Color(0x99FFFFFF),
+                    CircleShape
+                ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painterResource(if (enabled) R.drawable.ic_flash_on_24dp else R.drawable.ic_flash_off_24dp),
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp),
+                    tint = if (enabled) {
+                        if (darkTheme) Color(0xFFC7D2FE) else Color(0xFF1E40AF)
+                    } else Color(0xFF64748B)
+                )
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    stringResource(R.string.lion_auto_title),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = glassTextPrimary()
+                )
+                Text(
+                    stringResource(R.string.lion_auto_detail),
+                    fontSize = 12.sp,
+                    color = glassTextSecondary()
+                )
+            }
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = if (enabled) {
+                    if (darkTheme) Color(0x334338CA) else Color(0xFF1E40AF)
+                } else if (darkTheme) Color(0x24FFFFFF) else Color(0x99FFFFFF)
+            ) {
+                Text(
+                    stringResource(if (enabled) R.string.lion_auto_on else R.string.lion_auto_off),
+                    Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = when {
+                        enabled -> Color.White
+                        darkTheme -> Color(0xFFCBD5E1)
+                        else -> Color(0xFF64748B)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ServerGroupPage(
+    tab: ServerTab,
+    query: String,
+    uiState: MainUiState,
+    mainViewModel: MainViewModel,
+    isLoading: Boolean,
+    onAction: (MainAction) -> Unit,
+    onMore: (String, ProfileItem) -> Unit,
+    onRemove: (String, String) -> Unit
+) {
+    val flow = remember(tab.groupId) { mainViewModel.serverGroupState(tab.groupId) }
+    val state by flow.collectAsStateWithLifecycle()
+    val rows = remember(state.rows, tab.groupId) {
+        if (tab.groupId.isEmpty()) state.rows.filter { it.profile.subscriptionId.isEmpty() } else state.rows
+    }
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        if (rows.isEmpty()) {
+            item(key = "empty") {
+                ConsoleCard {
+                    Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            stringResource(if (query.isBlank()) R.string.lion_empty else R.string.lion_no_results),
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = glassTextPrimary()
+                        )
+                        Text(
+                            stringResource(if (tab.groupId.isEmpty()) R.string.lion_dashboard_no_server_detail else R.string.lion_empty_detail),
+                            fontSize = 14.sp,
+                            color = glassTextSecondary()
+                        )
+                    }
+                }
+            }
+        }
+        items(rows, key = { it.guid }) { row ->
+            LionServerCard(
+                row,
+                row.guid == uiState.selectedGuid,
+                onSelect = { onAction(MainAction.SelectServer(row.guid)) },
+                onMore = { onMore(row.guid, row.profile) },
+                onRemove = { onRemove(row.guid, row.remarks) }
+            )
         }
     }
 }

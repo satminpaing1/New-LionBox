@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180">
+  <rect width="320" height="180" fill="#FFFFFF"/>
+  <g transform="translate(26 30) scale(.234)">
+    <rect width="512" height="512" rx="118" fill="#07090F"/>
+    <path d="M256 434 L158 302 L126 192 L186 118 L256 118 Z" fill="#FFFFFF"/>
+    <path d="M256 118 L326 118 L386 192 L354 302 L256 434 Z" fill="#D3DFEC"/>
+    <path d="M282 176 L196 296 L250 296 L230 368 L318 246 L264 246 Z" fill="#5EEAD4"/>
+  </g>
+  <text x="170" y="102" font-family="Liberation Sans" font-size="34" font-weight="bold" fill="#07090F" letter-spacing="-0.5">LionBox</text>
+</svg>

@@ -22,4 +22,18 @@
     <string name="lion_selected">Selected server</string>
     <string name="lion_select">Select server</string>
     <string name="lion_logs_empty">No activity yet. Connection events will appear here.</string>
+    <string name="lion_change">Change ›</string>
+    <string name="lion_dashboard_no_server">No server selected</string>
+    <string name="lion_dashboard_no_server_detail">Pick a server to start the connection.</string>
+    <string name="lion_choose_server">Choose a server</string>
+    <string name="lion_auto_badge">Auto</string>
+    <string name="lion_tab_default">Default</string>
+    <string name="lion_tab_selected">Selected</string>
+    <string name="lion_auto_title">Auto (Fastest Server)</string>
+    <string name="lion_auto_detail">Checks every saved server and connects to the lowest ping.</string>
+    <string name="lion_auto_on">On</string>
+    <string name="lion_auto_off">Off</string>
+    <string name="lion_update_subscription">Update subscription</string>
+    <string name="lion_delete_server_title">Delete Server?</string>
+    <string name="lion_delete_server_message">Are you sure you want to delete \'%1$s\'?\n\nThis removes the saved server from this device.</string>
 </resources>

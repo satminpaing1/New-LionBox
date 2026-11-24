@@ -38,8 +38,7 @@ fun MainScreen(
     var showRemoveConfirm by rememberSaveable(stateSaver = ServerDeleteTarget.Saver) { mutableStateOf<ServerDeleteTarget?>(null) }
     var shareTarget by remember { mutableStateOf<Triple<String, ProfileItem, Boolean>?>(null) }
     val removeServer: (String, String) -> Unit = { guid, remarks ->
-        if (uiState.confirmRemove) showRemoveConfirm = ServerDeleteTarget(guid, remarks)
-        else onAction(MainAction.RemoveServer(guid))
+        showRemoveConfirm = ServerDeleteTarget(guid, remarks)
     }
     MainDialogs(
         showDelAllConfirm = showDelAllConfirm,

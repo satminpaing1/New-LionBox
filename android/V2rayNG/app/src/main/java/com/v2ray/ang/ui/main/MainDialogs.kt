@@ -56,8 +56,8 @@ fun MainDialogs(
     }
     showRemoveConfirm?.let { target ->
         DeleteConfirmDialog(
-            message = stringResource(R.string.confirm_delete_profile),
-            itemName = target.profileName,
+            title = stringResource(R.string.lion_delete_server_title),
+            message = stringResource(R.string.lion_delete_server_message, target.profileName),
             onConfirm = { onConfirmRemove(target.guid) },
             onDismiss = onDismissRemove
         )

@@ -6,6 +6,7 @@ import com.v2ray.ang.AppConfig
 import com.v2ray.ang.R
 import com.v2ray.ang.ui.base.BaseViewModel
 import com.v2ray.ang.util.LogUtil
+import com.v2ray.ang.util.LogcatBuffer
 import com.v2ray.ang.util.Utils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +16,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.IOException
 
 class LogcatViewModel(application: Application) : BaseViewModel(application) {
@@ -28,26 +31,40 @@ class LogcatViewModel(application: Application) : BaseViewModel(application) {
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    init {
+        viewModelScope.launch {
+            LogcatBuffer.cleared.collect { cleared ->
+                logsetsAll.clear()
+                _filteredLogs.value = emptyList()
+                if (cleared) loadLogcat()
+            }
+        }
+    }
+
     fun loadLogcat() {
         launchLoading {
             try {
-                val lst = LinkedHashSet<String>()
-                lst.add("logcat")
-                lst.add("-d")
-                lst.add("-v")
-                lst.add("time")
-                lst.add("-s")
-                lst.add("GoLog,${AppConfig.ANG_PACKAGE},AndroidRuntime,System.err")
-                val process = Runtime.getRuntime().exec(lst.toTypedArray())
-                val allText = process.inputStream.bufferedReader().use { it.readLines() }.reversed()
+                val allText = withContext(Dispatchers.IO) { readLogcat() }
 
                 logsetsAll.clear()
-                logsetsAll.addAll(allText)
+                logsetsAll.addAll(LogcatBuffer.cap(allText))
                 applyFilter()
             } catch (e: IOException) {
                 LogUtil.e(AppConfig.TAG, "Failed to get logcat", e)
             }
         }
+    }
+
+    private fun readLogcat(): List<String> {
+        val lst = LinkedHashSet<String>()
+        lst.add("logcat")
+        lst.add("-d")
+        lst.add("-v")
+        lst.add("time")
+        lst.add("-s")
+        lst.add("GoLog,${AppConfig.ANG_PACKAGE},AndroidRuntime,System.err")
+        val process = Runtime.getRuntime().exec(lst.toTypedArray())
+        return process.inputStream.bufferedReader().use { it.readLines() }.reversed()
     }
 
     fun copyLogcat() {
@@ -57,17 +74,16 @@ class LogcatViewModel(application: Application) : BaseViewModel(application) {
     }
 
     fun clearLogcat() {
-        try {
-            val lst = LinkedHashSet<String>()
-            lst.add("logcat")
-            lst.add("-c")
-            val process = Runtime.getRuntime().exec(lst.toTypedArray())
-            process.waitFor()
-
-            logsetsAll.clear()
-            _filteredLogs.value = emptyList()
-        } catch (e: IOException) {
-            LogUtil.e(AppConfig.TAG, "Failed to clear logcat", e)
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    Runtime.getRuntime().exec(arrayOf("logcat", "-c")).waitFor()
+                }
+                logsetsAll.clear()
+                _filteredLogs.value = emptyList()
+            } catch (e: IOException) {
+                LogUtil.e(AppConfig.TAG, "Failed to clear logcat", e)
+            }
         }
     }
 
@@ -77,11 +93,12 @@ class LogcatViewModel(application: Application) : BaseViewModel(application) {
     }
 
     private fun applyFilter() {
-        _filteredLogs.value = if (currentFilter.isEmpty()) {
+        val matched = if (currentFilter.isEmpty()) {
             logsetsAll.toList()
         } else {
             logsetsAll.filter { it.contains(currentFilter) }
         }
+        _filteredLogs.value = LogcatBuffer.cap(matched)
     }
 }
 

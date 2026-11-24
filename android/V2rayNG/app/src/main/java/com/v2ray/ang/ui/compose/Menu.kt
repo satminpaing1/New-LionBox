@@ -277,12 +277,12 @@ fun GlassDialogPillButton(
 ) {
     val fill = when {
         primary -> GlassTokens.accent
-        destructive -> GlassMenuTokens.destructiveTint
+        destructive -> GlassMenuTokens.destructive
         else -> glassDialogCancelFillColor()
     }
     val ink = when {
         primary -> Color.White
-        destructive -> glassMenuDestructiveTextColor()
+        destructive -> Color.White
         else -> glassDialogCancelInkColor()
     }
     Surface(
@@ -315,7 +315,7 @@ fun GlassDialogPillButton(
                     tint = ink
                 )
             }
-            Text(text, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = ink)
+            Text(text, fontSize = 15.sp, fontWeight = if (destructive) FontWeight.Bold else FontWeight.Medium, color = ink)
         }
     }
 }

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lion_delete_server_title">删除服务器？</string>
+    <string name="lion_delete_server_message">确定要删除“%1$s”吗？\n\n这会将已保存的服务器从此设备中移除。</string>
+</resources>

@@ -54,6 +54,7 @@ fun ConfirmDialog(
     confirmIconRes: Int? = null,
     destructiveConfirm: Boolean = false,
     messageTextAlign: TextAlign = TextAlign.Start,
+    messageColor: Color = glassMenuItemInkColor(),
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -72,7 +73,7 @@ fun ConfirmDialog(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
             fontSize = 14.sp,
             lineHeight = 21.sp,
-            color = glassMenuItemInkColor(),
+            color = messageColor,
             textAlign = messageTextAlign
         )
         Spacer(Modifier.height(18.dp))
@@ -101,11 +102,14 @@ fun DeleteConfirmDialog(
     message: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
+    title: String? = null,
     itemName: String? = null,
 ) {
     ConfirmDialog(
+        title = title,
         message = if (itemName.isNullOrBlank()) message else "$message\n\n$itemName",
         messageTextAlign = TextAlign.Center,
+        messageColor = glassTextSecondary(),
         confirmText = stringResource(R.string.action_delete),
         confirmIconRes = R.drawable.ic_delete_24dp,
         destructiveConfirm = true,
