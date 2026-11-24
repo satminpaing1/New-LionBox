@@ -906,6 +906,12 @@ textarea[aria-invalid="true"] { border-color: #DC2626; box-shadow: 0 0 0 3px rgb
   .fab { right: calc(50% - 420px); bottom: 110px; }
 }
 
+@media (max-width: 899px) {
+  /* The hero sits on the aurora background, so the stat grid gets its own
+     breathing room instead of starting flush under it. */
+  #page-dashboard .stat-grid { margin-top: 48px; }
+}
+
 @media (max-width: 380px) {
   #main { --pad: 16px; }
   .appbar { padding-left: 16px; padding-right: 16px; }
