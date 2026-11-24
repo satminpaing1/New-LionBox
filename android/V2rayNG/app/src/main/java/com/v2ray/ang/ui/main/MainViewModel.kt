@@ -49,7 +49,16 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.ConcurrentHashMap
 import java.util.regex.PatternSyntaxException
 
-private const val AUTO_CONNECT_TIMEOUT_MS = 20_000L
+/** A cached real-ping result can be reused for this long before Auto re-tests the group. */
+internal const val AUTO_CONNECT_FAST_CACHE_MS = 10 * 60 * 1000L
+/** A working server at least this fast ends Auto testing immediately. */
+internal const val AUTO_CONNECT_FAST_ENOUGH_MS = 250L
+/** Upper bound Auto testing may add before connecting, whatever the servers do. */
+internal const val AUTO_CONNECT_WAIT_WINDOW_MS = 2_000L
+/** Per-server probe budget; slow and dead servers cannot stall the connection. */
+internal const val AUTO_CONNECT_PROBE_TIMEOUT_MS = 1_500L
+/** Probes in flight at once during Auto. */
+internal const val AUTO_CONNECT_CONCURRENCY = 15
 
 /** Lowest positive latency among [candidates], or null when nothing answered. */
 internal fun fastestServerGuid(results: Map<String, Long>, candidates: Collection<String>): String? =
@@ -57,6 +66,32 @@ internal fun fastestServerGuid(results: Map<String, Long>, candidates: Collectio
         .mapNotNull { guid -> results[guid]?.takeIf { it > 0L }?.let { guid to it } }
         .minByOrNull { it.second }
         ?.first
+
+internal data class CachedLatency(val guid: String, val delayMillis: Long, val testedAtMillis: Long)
+
+/**
+ * Lowest-latency candidate whose last real-ping result is still fresh, or null when nothing
+ * usable is cached. Failed (<= 0) and untested (no timestamp) servers never win.
+ */
+internal fun fastestCachedGuid(
+    entries: Collection<CachedLatency>,
+    nowMillis: Long,
+    maxAgeMillis: Long = AUTO_CONNECT_FAST_CACHE_MS,
+): String? =
+    entries.asSequence()
+        .filter { it.delayMillis > 0L && it.testedAtMillis > 0L }
+        .filter { nowMillis - it.testedAtMillis in 0..maxAgeMillis }
+        .minByOrNull { it.delayMillis }
+        ?.guid
+
+/**
+ * Servers Auto may probe: the active tab/group, falling back to every saved server only when that
+ * tab is empty, so a large subscription list elsewhere cannot slow the connect down.
+ */
+internal fun autoConnectCandidates(activeGroup: Collection<String>, all: Collection<String>): List<String> {
+    val source = if (activeGroup.isNotEmpty()) activeGroup else all
+    return source.filter { it.isNotBlank() }.distinct()
+}
 
 private fun applyTestDelayResults(
     servers: List<ServersCache>,
@@ -297,7 +332,11 @@ class MainViewModel(
     }
 
     private fun queueTestResult(result: RealPingResult, request: MainTestRequests.Bulk) {
-        if (request.id == autoConnectRequestId) autoConnectResults[result.guid] = result.delayMillis
+        if (request.id == autoConnectRequestId) {
+            autoConnectResults[result.guid] = result.delayMillis
+            // Fastest-first: stop waiting as soon as a server answers quickly.
+            if (result.delayMillis in 1..AUTO_CONNECT_FAST_ENOUGH_MS) autoConnectWaiter?.complete(Unit)
+        }
         pendingTestResults[result.guid] = result.delayMillis
         if (testResultFlushJob?.isActive == true) return
 
@@ -939,41 +978,76 @@ class MainViewModel(
     }
 
     /**
-     * Tests every saved server, selects the working server with the lowest latency and then calls
-     * [onReady] so the caller can start the service. The current selection is kept when no server
-     * answers within [AUTO_CONNECT_TIMEOUT_MS].
+     * Picks the fastest server for Auto and then calls [onReady] so the caller can start the
+     * service, without waiting for a full sweep:
+     * 1. fresh cached latency (< [AUTO_CONNECT_FAST_CACHE_MS]) connects immediately, no probing;
+     * 2. otherwise the active tab is probed in parallel (capped, [AUTO_CONNECT_PROBE_TIMEOUT_MS]),
+     *    and the first result under [AUTO_CONNECT_FAST_ENOUGH_MS] — or [AUTO_CONNECT_WAIT_WINDOW_MS]
+     *    of testing — ends the sweep and connects to the fastest server found so far.
+     * The current selection is kept when nothing answers.
      */
     fun connectWithFastestServer(onReady: () -> Unit) {
         autoConnectJob?.cancel()
         autoConnectJob = viewModelScope.launch {
-            val guids = withContext(ioDispatcher) { dataSource.getServerGuidList("") }
-            if (guids.size < 2) {
-                guids.firstOrNull()?.let { selectForAutoConnect(it) }
+            val groupId = uiState.value.selectedGroupId
+            val guids = withContext(ioDispatcher) {
+                autoConnectCandidates(
+                    dataSource.getServerGuidList(groupId),
+                    dataSource.getServerGuidList(""),
+                )
+            }
+            if (guids.isEmpty()) {
                 onReady()
                 return@launch
             }
+            if (guids.size == 1) {
+                selectForAutoConnect(guids.first())
+                onReady()
+                return@launch
+            }
+
+            val cached = withContext(ioDispatcher) {
+                fastestCachedGuid(
+                    guids.map { guid ->
+                        val affiliation = dataSource.decodeAffiliationInfo(guid)
+                        CachedLatency(
+                            guid = guid,
+                            delayMillis = affiliation?.testDelayMillis ?: 0L,
+                            testedAtMillis = affiliation?.testTimeMillis ?: 0L,
+                        )
+                    },
+                    System.currentTimeMillis(),
+                )
+            }
+            if (cached != null) {
+                selectForAutoConnect(cached)
+                onReady()
+                return@launch
+            }
+
             autoConnectResults.clear()
             cancelAllPing()
             val waiter = CompletableDeferred<Unit>()
             autoConnectWaiter = waiter
-            val request = testRequests.beginBulk("")
+            val request = testRequests.beginBulk(groupId)
             autoConnectRequestId = request.id
             _uiState.update { it.copy(isTesting = true, status = MainStatus.Testing) }
             dataSource.sendMsg2TestService(
                 TestServiceMessage(
                     key = AppConfig.MSG_MEASURE_CONFIG_START,
-                    subscriptionId = "",
+                    subscriptionId = groupId,
                     serverGuids = guids,
-                    onlyTcp = false
+                    onlyTcp = false,
+                    concurrency = AUTO_CONNECT_CONCURRENCY,
+                    probeTimeoutMillis = AUTO_CONNECT_PROBE_TIMEOUT_MS
                 ),
                 request.id
             )
-            val finished = withTimeoutOrNull(AUTO_CONNECT_TIMEOUT_MS) { waiter.await() } != null
+            withTimeoutOrNull(AUTO_CONNECT_WAIT_WINDOW_MS) { waiter.await() }
             if (autoConnectWaiter === waiter) autoConnectWaiter = null
             if (autoConnectRequestId == request.id) autoConnectRequestId = null
-            if (!finished) {
-                cancelAllPing()
-            }
+            // A fast hit or the wait window expires while other probes are still running.
+            cancelAllPing()
             fastestServerGuid(autoConnectResults, guids)?.let { selectForAutoConnect(it) }
             onReady()
         }

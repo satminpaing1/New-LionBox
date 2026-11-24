@@ -10,18 +10,17 @@ import com.v2ray.ang.extension.isNotNullEmpty
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.SettingsManager
 import com.v2ray.ang.handler.SpeedtestManager
+import com.v2ray.ang.util.LatencyProbe
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicInteger
 
 internal object RealPingExecutionLimiter {
     private val customConfigMutex = Mutex()
@@ -41,47 +40,46 @@ internal object RealPingExecutionLimiter {
 /**
  * Worker that runs a batch of real-ping tests independently.
  * Each batch owns its own CoroutineScope/dispatcher and can be cancelled separately.
+ *
+ * @param concurrency probes in flight at once; 0 uses the user's real-ping setting.
+ * @param probeTimeoutMillis per-server budget; 0 keeps the legacy unbounded probe. A positive
+ * budget also trims the fallback URL chain to the primary URL so one server cannot burn the
+ * whole budget on retries.
  */
 class RealPingWorkerService(
     private val context: Context,
     private val guids: List<String>,
     private val onlyTcp: Boolean = false,
+    private val concurrency: Int = 0,
+    private val probeTimeoutMillis: Long = 0L,
     private val onEvent: (RealPingEvent) -> Unit = {}
 ) {
     private val job = SupervisorJob()
-    private val concurrency = SettingsManager.getRealPingConcurrency()
-    private val dispatcher = Executors.newFixedThreadPool(if (onlyTcp) concurrency * 2 else concurrency).asCoroutineDispatcher()
+    private val parallel = if (concurrency > 0) concurrency else SettingsManager.getRealPingConcurrency()
+    private val dispatcher = Executors.newFixedThreadPool(if (onlyTcp) parallel * 2 else parallel).asCoroutineDispatcher()
     private val scope = CoroutineScope(job + dispatcher + CoroutineName("RealPingBatchWorker"))
 
-    private val runningCount = AtomicInteger(0)
-    private val totalCount = AtomicInteger(0)
-
     fun start() {
-        val jobs = guids.map { guid ->
-            totalCount.incrementAndGet()
-            scope.launch {
-                runningCount.incrementAndGet()
-                try {
-                    val result = if (onlyTcp) startTcping(guid) else startRealPing(guid)
-                    if (scope.isActive) {
-                        onEvent(RealPingEvent.Result(guid, result))
-                    }
-                } catch (_: Throwable) {
-                    // ignore
-                } finally {
-                    val count = totalCount.decrementAndGet()
-                    val left = runningCount.decrementAndGet()
-                    if (scope.isActive) {
-                        onEvent(RealPingEvent.Progress("$left / $count"))
-                    }
-                }
-            }
-        }
-
         scope.launch {
             try {
-                joinAll(*jobs.toTypedArray())
-                if (isActive) {
+                ProbeBatchRunner(
+                    guids = guids,
+                    concurrency = parallel,
+                    timeoutMillis = probeTimeoutMillis,
+                ).run(
+                    onResult = { guid, result ->
+                        if (scope.isActive) {
+                            onEvent(RealPingEvent.Result(guid, result))
+                        }
+                    },
+                    onProgress = { left, total ->
+                        if (scope.isActive) {
+                            onEvent(RealPingEvent.Progress("$left / $total"))
+                        }
+                    },
+                    probe = { guid -> if (onlyTcp) startTcping(guid) else startRealPing(guid) },
+                )
+                if (scope.isActive) {
                     onEvent(RealPingEvent.Finish("0"))
                 }
             } catch (_: CancellationException) {
@@ -127,10 +125,12 @@ class RealPingWorkerService(
         if (!configResult.status) {
             return retFailure
         }
+        val maxUrls = if (probeTimeoutMillis > 0L) 1 else 3
         return RealPingExecutionLimiter.run(config.configType) {
-            com.v2ray.ang.util.LatencyProbe.measure(
+            LatencyProbe.measure(
                 SettingsManager.getDelayTestUrl(),
                 SettingsManager.getDelayTestUrl(true),
+                maxUrls,
             ) { url ->
                 if (!scope.isActive) throw CancellationException()
                 CoreNativeManager.measureOutboundDelay(configResult.content, url)

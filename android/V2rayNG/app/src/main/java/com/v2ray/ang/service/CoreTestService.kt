@@ -123,6 +123,8 @@ class CoreTestService : Service() {
                 context = this,
                 guids = guidsList,
                 onlyTcp = message.onlyTcp,
+                concurrency = message.concurrency,
+                probeTimeoutMillis = message.probeTimeoutMillis,
                 onEvent = { event ->
                     if (activeWorkers.containsKey(worker)) {
                         handleWorkerEvent(event, message, requestId) { activeWorkers.remove(worker) }

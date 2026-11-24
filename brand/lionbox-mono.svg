@@ -1,3 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <path fill-rule="evenodd" d="M256 432C301 411 368 384 374 318L374 204Q374 156 326 154L186 154Q138 156 138 204L138 318C144 384 211 411 256 432ZM234 278.6A41 41 0 1 1 278 278.6L269 344Q256 356 243 344Z" fill="#FFFFFF"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <g transform="translate(256 256) scale(0.88) translate(-273 -260)">
+    <g transform="rotate(-14, 195, 200)">
+      <rect x="178" y="182" width="142" height="22" rx="6" fill="#000000" />
+      <rect x="272" y="202" width="12" height="16" rx="2" fill="#000000" />
+      <rect x="292" y="202" width="14" height="14" rx="2" fill="#000000" />
+      <path d="M268 182 L268 168 C268 164 282 164 282 168 L282 182 Z" fill="none" stroke="#000000" stroke-width="4" />
+      <path d="M292 182 L292 168 C292 164 306 164 306 168 L306 182 Z" fill="none" stroke="#000000" stroke-width="4" />
+    </g>
+
+    <path d="M104 204 L140 204 L164 288 L186 218 C190 204 204 198 216 204 C224 208 226 218 221 230 L168 356 L158 356 L104 204 Z" fill="#000000" />
+
+    <g fill="none" stroke="#000000" stroke-width="13" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M242 250 C242 234 278 234 278 252 C278 266 254 280 240 302 L280 302" />
+      <path d="M298 302 L298 237 L320 237 C332 237 336 245 336 254 C336 264 330 271 318 271 L298 271" />
+      <path d="M316 271 L336 302" />
+      <path d="M350 302 L371 237 L392 302" />
+      <path d="M358 282 L384 282" />
+      <path d="M402 237 L422 271 L442 237" />
+      <path d="M422 271 L422 302" />
+    </g>
+  </g>
 </svg>
