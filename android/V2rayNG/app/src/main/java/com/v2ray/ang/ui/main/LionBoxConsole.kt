@@ -21,8 +21,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -114,23 +112,15 @@ internal fun LionBoxConsole(
             }
         },
         bottomBar = {
-            Surface(
-                modifier = Modifier.navigationBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp),
-                shape = RoundedCornerShape(50),
-                color = if (com.v2ray.ang.ui.compose.LocalDarkTheme.current) colors.surfaceContainerLow else com.v2ray.ang.ui.compose.AmbientTokens.glass,
-                border = BorderStroke(1.dp, if (com.v2ray.ang.ui.compose.LocalDarkTheme.current) colors.outlineVariant else com.v2ray.ang.ui.compose.AmbientTokens.glassBorder),
-                shadowElevation = 4.dp
-            ) {
-                NavigationBar(containerColor = Color.Transparent, windowInsets = WindowInsets(0, 0, 0, 0)) {
-                    LionBoxTab.entries.forEach { item ->
-                        NavigationBarItem(
-                            selected = tab == item,
-                            onClick = { tab = item; query = ""; onAction(MainAction.Search("")) },
-                            icon = { Icon(painterResource(item.icon), null) },
-                            label = { Text(stringResource(item.label), maxLines = 1) },
-                            colors = NavigationBarItemDefaults.colors(indicatorColor = colors.primaryContainer)
-                        )
-                    }
+            NavigationBar(containerColor = colors.surfaceContainerLow) {
+                LionBoxTab.entries.forEach { item ->
+                    NavigationBarItem(
+                        selected = tab == item,
+                        onClick = { tab = item; query = ""; onAction(MainAction.Search("")) },
+                        icon = { Icon(painterResource(item.icon), null) },
+                        label = { Text(stringResource(item.label), maxLines = 1) },
+                        colors = NavigationBarItemDefaults.colors(indicatorColor = colors.primaryContainer)
+                    )
                 }
             }
         }
@@ -245,15 +235,7 @@ internal fun LionBoxConsole(
 
 @Composable
 private fun ConsoleCard(content: @Composable () -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    val dark = com.v2ray.ang.ui.compose.LocalDarkTheme.current
-    Surface(
-        shape = RoundedCornerShape(com.v2ray.ang.ui.compose.AmbientTokens.radius),
-        color = if (dark) colors.surfaceContainer else com.v2ray.ang.ui.compose.AmbientTokens.glass,
-        border = BorderStroke(1.dp, if (dark) colors.outlineVariant else com.v2ray.ang.ui.compose.AmbientTokens.glassBorder),
-        shadowElevation = 2.dp,
-        content = content
-    )
+    Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainer, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), content = content)
 }
 
 @Composable
@@ -267,34 +249,30 @@ private fun delayLabel(delay: Long?): String = when {
 private fun LionServerCard(row: ServerRowUiModel, selected: Boolean, onSelect: () -> Unit, onMore: () -> Unit, onRemove: () -> Unit) {
     val stateLabel = stringResource(if (selected) R.string.lion_selected else R.string.lion_select)
     val colors = MaterialTheme.colorScheme
-    val dark = com.v2ray.ang.ui.compose.LocalDarkTheme.current
-    Surface(
-        shape = RoundedCornerShape(40.dp),
-        color = if (dark) colors.surfaceContainer else com.v2ray.ang.ui.compose.AmbientTokens.glass,
-        border = BorderStroke(1.dp, if (selected) colors.primary else if (dark) colors.outlineVariant else com.v2ray.ang.ui.compose.AmbientTokens.glassBorder),
-        shadowElevation = 2.dp
-    ) {
+    val gradient = androidx.compose.ui.graphics.Brush.linearGradient(
+        listOf(
+            colors.primaryContainer.copy(alpha = if (selected) 0.85f else 0.45f),
+            colors.surfaceContainer,
+            colors.secondaryContainer.copy(alpha = 0.6f)
+        )
+    )
+    Surface(shape = RoundedCornerShape(14.dp), color = colors.surfaceContainer,
+        border = BorderStroke(1.dp, if (selected) colors.primary else colors.outlineVariant)) {
         Row(
-            Modifier.fillMaxWidth()
+            Modifier.fillMaxWidth().background(gradient)
                 .clickable(role = Role.RadioButton, onClick = onSelect)
                 .semantics(mergeDescendants = true) { stateDescription = stateLabel }
-                .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+                .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.weight(1f).padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(row.remarks, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Surface(shape = RoundedCornerShape(50), color = colors.primaryContainer) {
-                        Text(row.typeDescription, Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = colors.onPrimaryContainer)
-                    }
-                    val delay = row.testDelayMillis
-                    val measured = delay != null && delay > 0
-                    Surface(shape = RoundedCornerShape(50), color = if (measured) colors.secondaryContainer else colors.surfaceVariant) {
-                        Text(delayLabel(delay), Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = if (measured) colors.onSecondaryContainer else colors.onSurfaceVariant)
-                    }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(row.typeDescription, style = MaterialTheme.typography.labelSmall, color = colors.primary, maxLines = 1)
+                    Text(row.statistics, Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(delayLabel(row.testDelayMillis), style = MaterialTheme.typography.labelSmall)
                 }
-                Text(row.statistics, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             IconButton(onClick = onMore, modifier = Modifier.size(48.dp)) {
                 Icon(painterResource(R.drawable.ic_more_vert_24dp), stringResource(R.string.lion_tools), modifier = Modifier.size(20.dp), tint = colors.onSurfaceVariant)
@@ -309,40 +287,45 @@ private fun LionServerCard(row: ServerRowUiModel, selected: Boolean, onSelect: (
 @Composable
 private fun LionPowerButton(isRunning: Boolean, enabled: Boolean, onClick: () -> Unit) {
     val label = stringResource(if (isRunning) R.string.lion_tap_disconnect else R.string.lion_tap_connect)
+    val accent = if (isRunning) com.v2ray.ang.ui.compose.AmbientTokens.connected else MaterialTheme.colorScheme.primary
     val colors = MaterialTheme.colorScheme
-    val gradient = androidx.compose.ui.graphics.Brush.linearGradient(
-        listOf(com.v2ray.ang.ui.compose.AmbientTokens.accentStart, com.v2ray.ang.ui.compose.AmbientTokens.accentEnd)
-    )
-    val position = remember { androidx.compose.animation.core.Animatable(if (isRunning) 1f else 0f) }
+    val wave = remember { androidx.compose.animation.core.Animatable(0f) }
     LaunchedEffect(isRunning) {
-        if (android.animation.ValueAnimator.areAnimatorsEnabled()) {
-            position.animateTo(if (isRunning) 1f else 0f, androidx.compose.animation.core.tween(200))
-        } else {
-            position.snapTo(if (isRunning) 1f else 0f)
+        wave.snapTo(0f)
+        if (isRunning && android.animation.ValueAnimator.areAnimatorsEnabled()) {
+            while (isRunning) {
+                wave.snapTo(0f)
+                wave.animateTo(1f, androidx.compose.animation.core.tween(1800, easing = androidx.compose.animation.core.LinearEasing))
+            }
         }
     }
-    Surface(
-        onClick = onClick,
-        enabled = enabled,
-        shape = RoundedCornerShape(50),
-        color = Color.Transparent,
-        shadowElevation = if (enabled) 6.dp else 0.dp,
-        modifier = Modifier.size(width = 156.dp, height = 88.dp).semantics {
-            contentDescription = label
-            stateDescription = label
-            role = Role.Switch
-            toggleableState = if (isRunning) androidx.compose.ui.state.ToggleableState.On else androidx.compose.ui.state.ToggleableState.Off
+    Box(Modifier.size(188.dp), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.fillMaxSize()) {
+            val radius = size.minDimension / 2
+            drawCircle(androidx.compose.ui.graphics.Brush.radialGradient(listOf(accent.copy(alpha = if (isRunning) 0.65f else 0.24f), accent.copy(alpha = 0f)), radius = radius))
+            if (isRunning) {
+                repeat(2) { index ->
+                    val progress = (wave.value + index * 0.5f) % 1f
+                    drawCircle(accent.copy(alpha = 0.6f * (1f - progress)), radius * (0.74f + 0.24f * progress), style = Stroke(3.dp.toPx()))
+                }
+                repeat(12) { index ->
+                    val angle = index * Math.PI / 6
+                    val start = radius * (0.76f + wave.value * 0.04f)
+                    val end = radius * (0.94f + wave.value * 0.04f)
+                    drawLine(accent.copy(alpha = 0.65f - 0.25f * wave.value), center + Offset((kotlin.math.cos(angle) * start).toFloat(), (kotlin.math.sin(angle) * start).toFloat()), center + Offset((kotlin.math.cos(angle) * end).toFloat(), (kotlin.math.sin(angle) * end).toFloat()), strokeWidth = 3.dp.toPx(), cap = StrokeCap.Round)
+                }
+            }
         }
-    ) {
-        Box(Modifier.background(if (enabled) gradient else androidx.compose.ui.graphics.Brush.linearGradient(listOf(colors.surfaceVariant, colors.surfaceVariant)))) {
-            Surface(
-                modifier = Modifier.padding(8.dp).offset(x = (68 * position.value).dp).size(72.dp),
-                shape = CircleShape,
-                color = colors.surface,
-                shadowElevation = 2.dp
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(painterResource(R.drawable.ic_vpn_monochrome), null, modifier = Modifier.size(32.dp), tint = if (enabled) colors.primary else colors.onSurfaceVariant)
+        Surface(onClick = onClick, enabled = enabled, shape = CircleShape,
+            color = if (isRunning) Color(0xFFA7F3C0) else colors.primaryContainer,
+            border = BorderStroke(2.dp, if (enabled) accent else colors.outlineVariant),
+            modifier = Modifier.size(136.dp).semantics { contentDescription = label; stateDescription = label }) {
+            val symbol = if (isRunning) Color(0xFF143C2A) else if (enabled) accent else colors.onSurfaceVariant
+            Box(contentAlignment = Alignment.Center) {
+                Canvas(Modifier.size(48.dp)) {
+                    val stroke = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round)
+                    drawArc(symbol, -50f, 280f, false, Offset(size.width * .15f, size.height * .2f), androidx.compose.ui.geometry.Size(size.width * .7f, size.height * .7f), style = stroke)
+                    drawLine(symbol, Offset(size.width / 2, size.height * .06f), Offset(size.width / 2, size.height * .48f), strokeWidth = stroke.width, cap = StrokeCap.Round)
                 }
             }
         }

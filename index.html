@@ -1,74 +1,76 @@
 <!doctype html>
-<html lang="en">
+<html lang="my">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><meta name="theme-color" content="#EEF4FB">
-<title>LionBox — Your connection, simplified</title>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><meta name="theme-color" content="#14100A">
+<title>LionBox — Secure VLESS & Shadowsocks client</title>
 <link rel="icon" href="/public/icons/lionbox-vpn.svg">
 <link rel="stylesheet" href="/styles.css"><script defer src="/app.js"></script>
 </head>
 <body>
 <div class="stage"><div class="phone" id="phone">
 <header class="appbar">
-<img class="appbar-icon" src="/public/icons/lionbox-vpn.svg" alt="" width="44" height="44">
-<div class="appbar-title"><strong>LionBox</strong><span>Your connection, simplified</span></div>
-<a class="icon-btn" id="download-apk" href="/public/vela-android.apk" download="LionBox.apk" aria-label="Download Android app"><span data-icon="download"></span></a>
+<img class="appbar-icon" src="/public/icons/lionbox-vpn.svg" alt="LionBox" width="34" height="34">
+<div class="appbar-title"><strong>LionBox</strong><span>VLESS · Shadowsocks</span></div>
+<a class="icon-btn" id="download-apk" href="/public/vela-android.apk" download="LionBox.apk" aria-label="LionBox APK ဒေါင်းလုဒ်"><span data-icon="download"></span></a>
 </header>
 <main id="main">
 <section class="page" id="page-dashboard">
 <div class="hero">
-<span class="eyebrow">Your space. Your connection.</span>
-<h1>A little calm.<br>A clear connection.</h1>
-<p>Keep your servers in one place. Choose a profile here, then connect securely with LionBox for Android.</p>
+<span class="eyebrow">LionBox · Shadowsocks &amp; VLESS</span>
+<h1>ခြင်္သေ့နွယ်ဝါ တစ်ကြည့်နဲ့ ချိတ်ဆက်ပြီးပြီ</h1>
+<p>Shadowsocks config နဲ့ VLESS key တွေကို paste လုပ်ပြီး server profile သိမ်းပါ။ Latency စစ်ခြင်းနဲ့ VPN ချိတ်ဆက်ခြင်းကို Android app ထဲမှာ အသုံးပြုပါ။</p>
 </div>
 <div class="status-card" data-state="off">
-<div class="status-head"><span class="status-dot" aria-hidden="true"></span><span id="status-label" role="status">Not connected</span><span class="status-pill" id="status-proto">VLESS</span></div>
-<div class="power-wrap"><button id="connect-button" class="power-button" aria-label="Connect with Android" aria-describedby="preview-note"><span data-icon="power"></span></button></div>
-<div class="status-server"><span class="muted">Selected server</span><strong id="status-server">Choose a server</strong><span id="status-latency">Ping unavailable on web</span></div>
-<p class="preview-note" id="preview-note">Web profile manager · VPN and live ping are available in the Android app.</p>
+<div class="status-head"><span class="status-dot" aria-hidden="true"></span><span id="status-label" role="status">မချိတ်ရသေးပါ</span><span class="status-pill" id="status-proto">VLESS</span></div>
+<div class="power-wrap"><button id="connect-button" class="power-button" aria-label="VPN ချိတ်ဆက်ရန်" aria-describedby="preview-note"><span data-icon="power"></span></button></div>
+<div class="status-server"><span class="muted">Server</span><strong id="status-server">Server ရွေးပါ</strong><span class="muted" id="status-latency">Latency —</span></div>
+<p class="preview-note" id="preview-note">Web profile manager · VPN နဲ့ latency အတွက် Android APK လိုအပ်ပါသည်။</p>
 </div>
 <div class="quick-row">
-<div class="quick-card"><span data-icon="activity"></span><div><small>Data used</small><strong id="stat-traffic">—</strong></div></div>
-<div class="quick-card"><span data-icon="clock"></span><div><small>Connected for</small><strong id="stat-time">—</strong></div></div>
+<div class="quick-card"><span data-icon="activity"></span><div><small>ဒါတာ</small><strong id="stat-traffic">—</strong></div></div>
+<div class="quick-card"><span data-icon="clock"></span><div><small>ချိတ်ဆက်ချိန်</small><strong id="stat-time">—</strong></div></div>
 </div>
-<div class="section-head"><h2>Your servers</h2><button class="text-btn" id="view-all">View all</button></div>
+<div class="section-head"><h2>ချိတ်ဆက်မည့် server</h2><button class="text-btn" id="view-all">အားလုံး</button></div>
 <div id="dashboard-servers" class="server-list"></div>
+<a class="apk-banner" id="download-banner" href="/public/vela-android.apk" download="LionBox.apk">
+<img src="/public/icons/lionbox-vpn.svg" alt="" width="40" height="40">
+<div><strong>LionBox APK ဒေါင်းလုဒ်</strong><span>Android အတွက် native VPN app</span></div><span data-icon="download"></span>
+</a>
 </section>
 <section class="page" id="page-servers" hidden>
-<div class="hero"><span class="eyebrow">Connection library</span><h1>Your servers</h1><p>Your own profiles, ready when you need them.</p></div>
-<div class="section-head"><h2>Saved profiles <span class="count-pill" id="server-count">0</span></h2></div>
-<label class="search-field"><span data-icon="search"></span><input id="search" placeholder="Search name or address" aria-label="Search servers"></label>
+<div class="section-head"><h2>Server profiles <span class="count-pill" id="server-count">0</span></h2></div>
+<label class="search-field"><span data-icon="search"></span><input id="search" placeholder="Server နာမည် / address ရှာမည်" aria-label="Server ရှာမည်"></label>
 <div id="all-servers" class="server-list"></div>
 </section>
 <section class="page" id="page-logs" hidden>
-<div class="hero"><span class="eyebrow">On-device activity</span><h1>A clear history</h1><p>Profile imports and changes, saved in this browser.</p></div>
-<div class="section-head"><h2>Activity log</h2><button class="text-btn" id="clear-log">Clear</button></div><div id="activity-list" class="log-list"></div>
+<div class="section-head"><h2>Activity log</h2><button class="text-btn" id="clear-log">ရှင်းလင်း</button></div><div id="activity-list" class="log-list"></div>
 </section>
 <section class="page" id="page-settings" hidden>
-<div class="hero"><span class="eyebrow">Make it yours</span><h1>The essentials</h1><p>Simple controls for your profiles and privacy.</p></div>
+<div class="section-head"><h2>Settings</h2></div>
 <div class="settings-list">
-<label class="setting-row"><div><strong>Confirm before deleting</strong><p class="muted">Keep accidental taps from removing a server.</p></div><input type="checkbox" id="confirm-delete" checked></label>
-<div class="setting-row"><div><strong>Export your profiles</strong><p class="muted">Save your VLESS and Shadowsocks keys as a text file.</p></div><button class="btn ghost" id="export-all"><span data-icon="download"></span>Export</button></div>
-<div class="setting-row"><div><strong>LionBox for Android</strong><p class="muted">Connect and check live server latency.</p></div><a class="btn ghost" href="/public/vela-android.apk" download="LionBox.apk" id="download-apk-settings"><span data-icon="download"></span>APK</a></div>
-<div class="setting-row"><div><strong>Local profile storage</strong><p class="muted">Your keys stay in this browser. Export a backup before clearing browser data.</p></div><span class="tag">On-device</span></div>
+<label class="setting-row"><div><strong>ဖျက်မည့်အခါ အတည်ပြုမည်</strong><p class="muted">Server ဖျက်မှားခြင်း ကာကွယ်မည်</p></div><input type="checkbox" id="confirm-delete" checked></label>
+<div class="setting-row"><div><strong>Profiles export လုပ်မည်</strong><p class="muted">VLESS / Shadowsocks config များကို text file အဖြစ် ရယူမည်</p></div><button class="btn ghost" id="export-all"><span data-icon="download"></span>Export</button></div>
+<div class="setting-row"><div><strong>LionBox APK</strong><p class="muted">Android အတွက် native client</p></div><a class="btn ghost" href="/public/vela-android.apk" download="LionBox.apk" id="download-apk-settings"><span data-icon="download"></span>APK</a></div>
+<div class="setting-row"><div><strong>Key သိမ်းဆည်းမှု</strong><p class="muted">ဤ browser ထဲတွင်သာ local storage ဖြင့် သိမ်းမည်</p></div><span class="tag">On-device</span></div>
 </div>
 </section>
 </main>
-<button class="fab" id="import-fab" aria-label="Add server" hidden><span data-icon="plus"></span></button>
-<nav class="bottom-nav" aria-label="Main navigation">
-<button class="nav-item active" data-page="dashboard"><span data-icon="home"></span>Home</button>
+<button class="fab" id="import-fab" aria-label="Key / config ထည့်မည်" hidden><span data-icon="plus"></span></button>
+<nav class="bottom-nav" aria-label="အဓိက navigation">
+<button class="nav-item active" data-page="dashboard"><span data-icon="home"></span>Dashboard</button>
 <button class="nav-item" data-page="servers"><span data-icon="server"></span>Servers<span class="nav-count" id="nav-count">0</span></button>
-<button class="nav-item" data-page="logs"><span data-icon="activity"></span>Activity</button>
+<button class="nav-item" data-page="logs"><span data-icon="activity"></span>Logs</button>
 <button class="nav-item" data-page="settings"><span data-icon="settings"></span>Settings</button>
 </nav>
 </div></div>
 <dialog id="import-dialog" aria-labelledby="import-title">
 <form id="import-form">
-<div class="dialog-head"><h2 id="import-title">Add a server</h2><button type="button" class="icon-btn close-dialog" aria-label="Close"><span data-icon="x"></span></button></div>
-<p class="muted">Paste a VLESS or ss:// key per line, or a Shadowsocks JSON config.</p>
-<label class="input-label" for="vless-input">Server key or config</label>
-<textarea id="vless-input" rows="5" placeholder="Paste your server configuration here" required spellcheck="false" aria-describedby="import-error storage-hint"></textarea>
-<p class="form-hint" id="storage-hint">Saved only in this browser. Never shared with a server.</p><p id="import-error" class="error" role="alert"></p>
-<div class="dialog-actions"><button type="button" class="btn ghost close-dialog">Cancel</button><button type="submit" class="btn primary" id="import-submit">Import</button></div>
+<div class="dialog-head"><h2 id="import-title">Key / config ထည့်မည်</h2><button type="button" class="icon-btn close-dialog" aria-label="ပိတ်မည်"><span data-icon="x"></span></button></div>
+<p class="muted">VLESS / ss:// key တစ်ကြောင်းစီ သို့မဟုတ် Shadowsocks JSON config ကို paste လုပ်ပါ။</p>
+<label class="input-label" for="vless-input">VLESS / Shadowsocks config</label>
+<textarea id="vless-input" rows="5" placeholder="vless://uuid@server:443?security=tls#My%20server" required spellcheck="false" aria-describedby="import-error"></textarea>
+<p class="form-hint">Key များကို ဤ browser ထဲတွင်သာ သိမ်းဆည်းမည်။</p><p id="import-error" class="error" role="alert"></p>
+<div class="dialog-actions"><button type="button" class="btn ghost close-dialog">မလုပ်တော့</button><button type="submit" class="btn primary" id="import-submit">Import</button></div>
 </form>
 </dialog>
 <div id="toast" class="toast" role="status" hidden></div>
