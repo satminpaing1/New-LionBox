@@ -38,6 +38,36 @@ class ThemeColorsTest {
         assertTrue(glassBorderTint(dark = true).alpha < glassBorderTint(dark = false).alpha)
     }
 
+    @Test
+    fun `dashboard card tints stay pastel frosted and readable`() {
+        val tints = mapOf(
+            "ice blue" to (GlassTints.iceBlue to Color(0xFFE0F2FE)),
+            "rose" to (GlassTints.rose to Color(0xFFFCE7F3)),
+            "peach" to (GlassTints.peach to Color(0xFFFEF3C7)),
+            "lavender" to (GlassTints.lavender to Color(0xFFF3E8FF)),
+            "mint" to (GlassTints.mint to Color(0xFFD1FAE5)),
+            "cyan" to (GlassTints.cyan to Color(0xFFCFFAFE)),
+            "amber" to (GlassTints.amber to Color(0xFFFFEDD5)),
+            "periwinkle" to (GlassTints.periwinkle to Color(0xFFEEF2FF))
+        )
+        tints.forEach { (name, pair) ->
+            val (tint, expected) = pair
+            assertEquals(expected, tint, "$name keeps its pastel hue")
+            val light = glassTintFill(tint, dark = false)
+            assertEquals(0.90f, light.alpha, 0.005f, "$name stays frosted at 90% in light mode")
+            assertTrue(glassTintFill(tint, dark = true).alpha < light.alpha, "$name veils down in dark mode")
+            val composited = blendOverWhite(light)
+            val contrast = contrast(GlassTokens.ink, composited)
+            assertTrue(contrast >= 4.5, "$name card ink has contrast $contrast")
+        }
+    }
+
+    private fun blendOverWhite(color: Color): Color = Color(
+        red = color.red * color.alpha + (1f - color.alpha),
+        green = color.green * color.alpha + (1f - color.alpha),
+        blue = color.blue * color.alpha + (1f - color.alpha)
+    )
+
     private fun contrast(foreground: Color, background: Color): Double {
         val first = luminance(foreground)
         val second = luminance(background)

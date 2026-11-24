@@ -388,9 +388,9 @@ private fun LionServerCard(row: ServerRowUiModel, selected: Boolean, onSelect: (
     Surface(
         shape = RoundedCornerShape(22.dp),
         color = if (selected) {
-            if (darkTheme) Color(0x33BFDBFE) else Color(0xE6F2F8FF)
+            if (darkTheme) Color(0x33C7D2FE) else Color(0xA6EEF2FF)
         } else glassSurfaceColor(),
-        border = BorderStroke(1.dp, if (selected) Color(0xFF93C5FD) else glassBorderColor()),
+        border = BorderStroke(1.dp, if (selected) Color(0xFFFFFFFF) else glassBorderColor()),
         shadowElevation = 0.dp
     ) {
         Row(
@@ -402,14 +402,22 @@ private fun LionServerCard(row: ServerRowUiModel, selected: Boolean, onSelect: (
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    row.remarks,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = glassTextPrimary(),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(
+                        painterResource(R.drawable.ic_vpn_monochrome),
+                        contentDescription = null,
+                        modifier = Modifier.size(15.dp),
+                        tint = Color(0xFFF97316)
+                    )
+                    Text(
+                        row.remarks,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = glassTextPrimary(),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Surface(
                         shape = RoundedCornerShape(999.dp),
@@ -423,6 +431,15 @@ private fun LionServerCard(row: ServerRowUiModel, selected: Boolean, onSelect: (
                             color = if (darkTheme) Color(0xFFC7D2FE) else GlassTokens.ascentText
                         )
                     }
+                    Text(
+                        row.statistics,
+                        Modifier.weight(1f),
+                        fontSize = 11.sp,
+                        letterSpacing = 1.sp,
+                        color = glassTextSecondary(),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                     Surface(
                         shape = RoundedCornerShape(999.dp),
                         color = if (delay != null && delay > 0) {
@@ -439,14 +456,6 @@ private fun LionServerCard(row: ServerRowUiModel, selected: Boolean, onSelect: (
                             } else glassTextSecondary()
                         )
                     }
-                    Text(
-                        row.statistics,
-                        Modifier.weight(1f),
-                        fontSize = 11.sp,
-                        color = glassTextSecondary(),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
                 }
             }
             IconButton(onClick = onMore, modifier = Modifier.size(44.dp)) {

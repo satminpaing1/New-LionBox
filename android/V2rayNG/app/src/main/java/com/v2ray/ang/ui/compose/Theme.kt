@@ -59,10 +59,32 @@ object GlassTokens {
 }
 
 /**
+ * Dashboard card tints. Each card carries its own pastel hue so the stats read as a set of
+ * distinct objects, never as one uniform white block.
+ */
+object GlassTints {
+    val iceBlue = Color(0xFFE0F2FE)
+    val rose = Color(0xFFFCE7F3)
+    val peach = Color(0xFFFEF3C7)
+    val lavender = Color(0xFFF3E8FF)
+    val mint = Color(0xFFD1FAE5)
+    val cyan = Color(0xFFCFFAFE)
+    val amber = Color(0xFFFFEDD5)
+    val periwinkle = Color(0xFFEEF2FF)
+}
+
+/**
  * Material elevation is always zero on glass: a hardware shadow bleeds through a translucent fill
  * and renders as a dark grey smudge on Android, so cards separate by fill and hairline only.
  */
 val glassCardElevation = 0.dp
+
+/** Frosted pastel fill: 90% pastel in light mode so the hue survives the aurora, a faint veil in dark mode. */
+fun glassTintFill(tint: Color, dark: Boolean): Color =
+    tint.copy(alpha = if (dark) 0.14f else 0.90f)
+
+@Composable
+fun glassTintColor(tint: Color): Color = glassTintFill(tint, LocalDarkTheme.current)
 
 internal fun glassSurfaceFill(dark: Boolean): Color =
     if (dark) Color(0x17FFFFFF) else Color(0xD9FFFFFF)
@@ -101,12 +123,13 @@ fun glassTextLabel(): Color = if (LocalDarkTheme.current) Color(0xFFE2E8F0) else
 fun GlassCard(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(24.dp),
+    tint: Color? = null,
     content: @Composable () -> Unit
 ) {
     Surface(
         modifier = modifier,
         shape = shape,
-        color = glassSurfaceColor(),
+        color = if (tint == null) glassSurfaceColor() else glassTintColor(tint),
         contentColor = glassTextPrimary(),
         border = BorderStroke(1.dp, glassBorderColor()),
         shadowElevation = glassCardElevation,

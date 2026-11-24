@@ -72,12 +72,12 @@
       if (line.startsWith('{')) {
         const config = JSON.parse(line);
         if (typeof config.server !== 'string' || !config.server.trim() || !Number.isInteger(Number(config.server_port)) || Number(config.server_port) < 1 || Number(config.server_port) > 65535 || typeof config.method !== 'string' || !config.method || typeof config.password !== 'string' || !config.password) return null;
-        return { name: typeof config.remarks === 'string' && config.remarks ? config.remarks : 'Shadowsocks server', address: config.server, port: String(config.server_port), security: config.method, protocol: 'Shadowsocks', sni: '', raw: line };
+        return { name: typeof config.remarks === 'string' && config.remarks ? config.remarks : 'Shadowsocks server', address: config.server, port: String(config.server_port), security: config.method, network: 'tcp', protocol: 'Shadowsocks', sni: '', raw: line };
       }
       if (line.startsWith('vless://')) {
         const u = new URL(line);
         if (!u.hostname || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(u.username)) return null;
-        return { name: u.hash ? decodeURIComponent(u.hash.slice(1)) : 'Unnamed server', address: u.hostname, port: u.port || '443', uuid: u.username, security: u.searchParams.get('security') || 'tls', sni: u.searchParams.get('sni') || u.searchParams.get('host') || '', protocol: 'VLESS', raw: line };
+        return { name: u.hash ? decodeURIComponent(u.hash.slice(1)) : 'Unnamed server', address: u.hostname, port: u.port || '443', uuid: u.username, security: u.searchParams.get('security') || 'tls', network: u.searchParams.get('type') || 'tcp', sni: u.searchParams.get('sni') || u.searchParams.get('host') || '', protocol: 'VLESS', raw: line };
       }
       if (line.startsWith('ss://')) {
         const hashAt = line.indexOf('#');
@@ -92,7 +92,7 @@
         if (colon < 1 || !credentials.slice(colon + 1)) return null;
         const u = new URL('http://' + body.slice(at + 1));
         if (!u.hostname || !u.port || u.pathname !== '/') return null;
-        return { name, address: u.hostname, port: u.port, security: credentials.slice(0, colon), sni: '', protocol: 'Shadowsocks', raw: line };
+        return { name, address: u.hostname, port: u.port, security: credentials.slice(0, colon), network: 'tcp', sni: '', protocol: 'Shadowsocks', raw: line };
       }
     } catch (e) { return null; }
     return null;
@@ -114,6 +114,8 @@
     const p = selectedProfile();
     $('status-server').textContent = p ? displayName(p) : 'Server ရွေးပါ';
     $('status-proto').textContent = p ? p.protocol || 'VLESS' : 'VLESS';
+    $('stat-protocol').textContent = p ? p.protocol || 'VLESS' : '—';
+    $('stat-network').textContent = p ? (p.network || 'tcp') : '—';
   }
 
   function serverCard(p) {
@@ -121,8 +123,9 @@
     div.className = 'server-card';
     const selected = selectedProfile() === p;
     div.dataset.selected = selected;
+    const protoLabel = [p.protocol || 'VLESS', p.network, p.security].filter(Boolean).join(' / ');
     div.innerHTML = '<span class="server-icon"><span data-icon="lion"></span></span>' +
-      '<button class="info select-server" aria-pressed="' + selected + '"><strong>' + escapeHtml(displayName(p)) + '</strong><span class="badges"><span class="pill pill-proto">' + escapeHtml(p.protocol || 'VLESS') + '</span><span class="pill pill-mint">' + escapeHtml(p.security.toUpperCase()) + '</span><span class="server-meta">******</span></span></button>' +
+      '<button class="info select-server" aria-pressed="' + selected + '"><strong>' + escapeHtml(displayName(p)) + '</strong><span class="badges"><span class="pill pill-proto">' + escapeHtml(protoLabel) + '</span><span class="server-meta">******</span><span class="pill pill-mint" title="Latency ကို Android app တွင် တိုင်းတာသည်">—</span></span></button>' +
       '<button class="del" aria-label="Server ဖျက်မည်"><span data-icon="trash"></span></button>';
     div.querySelector('.select-server').addEventListener('click', () => { selectedRaw = p.raw; renderAll(); });
     div.querySelector('.del').addEventListener('click', () => removeProfile(p));
@@ -149,6 +152,14 @@
       empty.className = 'empty';
       empty.textContent = searching ? 'ရှာမတွေ့ပါ။' : 'Server မရှိသေးပါ။ Key / config ထည့်ပါ။';
       wrap.appendChild(empty);
+      if (!searching) {
+        const add = document.createElement('button');
+        add.type = 'button';
+        add.className = 'btn primary';
+        add.textContent = 'Key ထည့်မည်';
+        add.addEventListener('click', openImport);
+        wrap.appendChild(add);
+      }
       if (!searching) {
         const button = document.createElement('button');
         button.className = 'btn ghost';
