@@ -8,6 +8,7 @@
     <string name="lion_tools">Server tools</string>
     <string name="lion_tap_connect">Tap to connect</string>
     <string name="lion_tap_disconnect">Tap to disconnect</string>
+    <string name="lion_connected">Connected</string>
     <string name="lion_no_server">Select a server to connect</string>
     <string name="lion_protocol">Protocol</string>
     <string name="lion_latency">Latency</string>

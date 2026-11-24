@@ -146,7 +146,12 @@ internal fun LionBoxConsole(
                                 LionPowerButton(uiState.isRunning, connectionAction(uiState.selectedGuid != null, uiState.isRunning) != null && !isLoading) {
                                     connectionAction(uiState.selectedGuid != null, uiState.isRunning)?.let(onAction)
                                 }
-                                Text(stringResource(if (uiState.isRunning) R.string.lion_tap_disconnect else R.string.lion_tap_connect), modifier = Modifier.fillMaxWidth(), color = colors.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    if (uiState.isRunning) {
+                                        Text(stringResource(R.string.lion_connected), style = MaterialTheme.typography.labelLarge, color = Color(0xFF0D9488), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                                    }
+                                    Text(stringResource(if (uiState.isRunning) R.string.lion_tap_disconnect else R.string.lion_tap_connect), modifier = Modifier.fillMaxWidth(), color = colors.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                                }
                                 Text(selected?.remarks ?: stringResource(R.string.lion_no_server), modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                                 TrafficStats(uiState)
                                 OutlinedButton(onClick = { onAction(if (uiState.isRunning) MainAction.TestCurrentServer else MainAction.TestRealAllServers) }, enabled = uiState.selectedGuid != null && !uiState.isTesting && !isLoading, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp), shape = RoundedCornerShape(14.dp)) {
@@ -287,41 +292,32 @@ private fun LionServerCard(row: ServerRowUiModel, selected: Boolean, onSelect: (
 @Composable
 private fun LionPowerButton(isRunning: Boolean, enabled: Boolean, onClick: () -> Unit) {
     val label = stringResource(if (isRunning) R.string.lion_tap_disconnect else R.string.lion_tap_connect)
-    val accent = if (isRunning) com.v2ray.ang.ui.compose.AmbientTokens.connected else MaterialTheme.colorScheme.primary
-    val colors = MaterialTheme.colorScheme
+    val emerald = Color(0xFF10B981)
+    val teal = Color(0xFF0D9488)
+    val opacity = if (enabled) 1f else 0.45f
     val wave = remember { androidx.compose.animation.core.Animatable(0f) }
     LaunchedEffect(isRunning) {
         wave.snapTo(0f)
         if (isRunning && android.animation.ValueAnimator.areAnimatorsEnabled()) {
             while (isRunning) {
                 wave.snapTo(0f)
-                wave.animateTo(1f, androidx.compose.animation.core.tween(1800, easing = androidx.compose.animation.core.LinearEasing))
+                wave.animateTo(1f, androidx.compose.animation.core.tween(2400, easing = androidx.compose.animation.core.LinearEasing))
             }
         }
     }
     Box(Modifier.size(188.dp), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val radius = size.minDimension / 2
-            drawCircle(androidx.compose.ui.graphics.Brush.radialGradient(listOf(accent.copy(alpha = if (isRunning) 0.65f else 0.24f), accent.copy(alpha = 0f)), radius = radius))
-            if (isRunning) {
-                repeat(2) { index ->
-                    val progress = (wave.value + index * 0.5f) % 1f
-                    drawCircle(accent.copy(alpha = 0.6f * (1f - progress)), radius * (0.74f + 0.24f * progress), style = Stroke(3.dp.toPx()))
-                }
-                repeat(12) { index ->
-                    val angle = index * Math.PI / 6
-                    val start = radius * (0.76f + wave.value * 0.04f)
-                    val end = radius * (0.94f + wave.value * 0.04f)
-                    drawLine(accent.copy(alpha = 0.65f - 0.25f * wave.value), center + Offset((kotlin.math.cos(angle) * start).toFloat(), (kotlin.math.sin(angle) * start).toFloat()), center + Offset((kotlin.math.cos(angle) * end).toFloat(), (kotlin.math.sin(angle) * end).toFloat()), strokeWidth = 3.dp.toPx(), cap = StrokeCap.Round)
-                }
-            }
+            val pulse = ((1f - kotlin.math.cos(wave.value * 2f * Math.PI)) / 2f).toFloat()
+            drawCircle(androidx.compose.ui.graphics.Brush.radialGradient(listOf(emerald.copy(alpha = 0.3f * opacity), emerald.copy(alpha = 0f)), radius = radius))
+            drawCircle(emerald.copy(alpha = 0.2f * opacity), radius * (0.83f + 0.03f * pulse), style = Stroke(2.dp.toPx()))
+            drawCircle(emerald.copy(alpha = 0.1f * opacity), radius * (0.94f + 0.04f * pulse), style = Stroke(2.dp.toPx()))
         }
         Surface(onClick = onClick, enabled = enabled, shape = CircleShape,
-            color = if (isRunning) Color(0xFFA7F3C0) else colors.primaryContainer,
-            border = BorderStroke(2.dp, if (enabled) accent else colors.outlineVariant),
+            color = Color.Transparent,
             modifier = Modifier.size(136.dp).semantics { contentDescription = label; stateDescription = label }) {
-            val symbol = if (isRunning) Color(0xFF143C2A) else if (enabled) accent else colors.onSurfaceVariant
-            Box(contentAlignment = Alignment.Center) {
+            val symbol = Color.White.copy(alpha = opacity)
+            Box(Modifier.background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(emerald.copy(alpha = opacity), teal.copy(alpha = opacity)))), contentAlignment = Alignment.Center) {
                 Canvas(Modifier.size(48.dp)) {
                     val stroke = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round)
                     drawArc(symbol, -50f, 280f, false, Offset(size.width * .15f, size.height * .2f), androidx.compose.ui.geometry.Size(size.width * .7f, size.height * .7f), style = stroke)
