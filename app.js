@@ -122,7 +122,7 @@
     const selected = selectedProfile() === p;
     div.dataset.selected = selected;
     div.innerHTML = '<span class="server-icon"><span data-icon="lion"></span></span>' +
-      '<button class="info select-server" aria-pressed="' + selected + '"><strong>' + escapeHtml(displayName(p)) + '</strong><span class="muted">' + escapeHtml(p.protocol || 'VLESS') + ' · ****** · ' + escapeHtml(p.security.toUpperCase()) + '</span></button>' +
+      '<button class="info select-server" aria-pressed="' + selected + '"><strong>' + escapeHtml(displayName(p)) + '</strong><span class="badges"><span class="pill pill-proto">' + escapeHtml(p.protocol || 'VLESS') + '</span><span class="pill pill-mint">' + escapeHtml(p.security.toUpperCase()) + '</span><span class="server-meta">******</span></span></button>' +
       '<button class="del" aria-label="Server ဖျက်မည်"><span data-icon="trash"></span></button>';
     div.querySelector('.select-server').addEventListener('click', () => { selectedRaw = p.raw; renderAll(); });
     div.querySelector('.del').addEventListener('click', () => removeProfile(p));
@@ -201,6 +201,12 @@
   }
 
   $('import-fab').addEventListener('click', openImport);
+  const menuImport = $('menu-import');
+  if (menuImport) menuImport.addEventListener('click', () => { $('appbar-menu').removeAttribute('open'); openImport(); });
+  document.addEventListener('click', e => {
+    const menu = $('appbar-menu');
+    if (menu && menu.open && !menu.contains(e.target)) menu.removeAttribute('open');
+  });
   document.querySelectorAll('.close-dialog').forEach(b => b.addEventListener('click', () => $('import-dialog').close()));
   $('import-form').addEventListener('submit', async e => {
     e.preventDefault();
@@ -237,7 +243,7 @@
   $('connect-button').addEventListener('click', () => {
     if (!profiles.length) { openImport(); return; }
     $('status-label').textContent = 'Android app လိုအပ်ပါသည်';
-    $('status-latency').textContent = 'Latency — (Android app တွင် စစ်ပါ)';
+    $('status-sub').textContent = 'Android app တွင် ချိတ်ဆက်ပါ';
     toast('VPN ချိတ်ဆက်ရန် LionBox APK ကို Android ဖုန်းတွင် အသုံးပြုပါ။');
   });
   document.querySelectorAll('.nav-item').forEach(b => b.addEventListener('click', () => showPage(b.dataset.page)));

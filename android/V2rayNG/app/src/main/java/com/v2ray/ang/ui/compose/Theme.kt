@@ -3,9 +3,12 @@ package com.v2ray.ang.ui.compose
 import android.app.Activity
 import android.os.Build
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -20,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -29,73 +33,131 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-object AmbientTokens {
-    val base = Color(0xFFF8F9FB)
-    val blush = Color(0xFFF4D6E2)
-    val lavender = Color(0xFFE0DAF5)
-    val mint = Color(0xFFD6EEE4)
-    val grid = Color(0xFF64748B)
-    val darkBlush = Color(0xFF644454)
-    val darkLavender = Color(0xFF494B78)
-    val darkMint = Color(0xFF2B625A)
-    val darkGrid = Color(0xFFBAC6D8)
-    val connected = Color(0xFF23836A)
+object GlassTokens {
+    val base = Color(0xFFEEF5FF)
+    val sky = Color(0xFFBAE6FD)
+    val mint = Color(0xFFA7F3D0)
+    val lavender = Color(0xFFDDD6FE)
+    val ink = Color(0xFF0F172A)
+    val slate = Color(0xFF334155)
+    val muted = Color(0xFF64748B)
+    val skyAccent = Color(0xFF38BDF8)
+    val accent = Color(0xFF3B82F6)
+    val emerald = Color(0xFF10B981)
+    val connectedText = Color(0xFF2E8B57)
+    val teal = Color(0xFF0F766E)
+    val mintRing = Color(0xFF6EE7B7)
+    val mintRingFill = Color(0x4034D399)
+    val ascent = Color(0xFFE0E7FF)
+    val ascentText = Color(0xFF4338CA)
+    val mintBadge = Color(0xFFD1FAE5)
+    val mintBadgeText = Color(0xFF047857)
+    val darkBase = Color(0xFF0B1220)
+    val darkSky = Color(0xFF1E3A8A)
+    val darkMint = Color(0xFF14532D)
+    val darkLavender = Color(0xFF312E81)
+}
+
+/** Frosted card fill; white glass in light mode, faint white veil on charcoal in dark mode. */
+@Composable
+fun glassSurfaceColor(): Color = if (LocalDarkTheme.current) Color(0x17FFFFFF) else Color(0x9EFFFFFF)
+
+@Composable
+fun glassStrongSurfaceColor(): Color = if (LocalDarkTheme.current) Color(0x24FFFFFF) else Color(0xBFFFFFFF)
+
+@Composable
+fun glassBorderColor(): Color = if (LocalDarkTheme.current) Color(0x2EFFFFFF) else Color(0xD9FFFFFF)
+
+@Composable
+fun glassHairlineColor(): Color = if (LocalDarkTheme.current) Color(0x33FFFFFF) else Color(0x2E0F172A)
+
+@Composable
+fun glassTextPrimary(): Color = if (LocalDarkTheme.current) Color(0xFFF1F5F9) else GlassTokens.ink
+
+@Composable
+fun glassTextSecondary(): Color = if (LocalDarkTheme.current) Color(0xFFCBD5E1) else GlassTokens.muted
+
+@Composable
+fun glassTextLabel(): Color = if (LocalDarkTheme.current) Color(0xFFE2E8F0) else GlassTokens.slate
+
+/** The one frosted card surface every screen uses: translucent white, crisp white hairline, soft diffuse shadow. */
+@Composable
+fun GlassCard(
+    modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(24.dp),
+    content: @Composable () -> Unit
+) {
+    Surface(
+        modifier = modifier,
+        shape = shape,
+        color = glassSurfaceColor(),
+        contentColor = glassTextPrimary(),
+        border = BorderStroke(1.dp, glassBorderColor()),
+        shadowElevation = if (LocalDarkTheme.current) 0.dp else 8.dp,
+        tonalElevation = 0.dp,
+        content = content
+    )
 }
 
 fun Modifier.ambientBackground(darkTheme: Boolean, background: Color): Modifier =
     this.then(Modifier.drawWithCache {
-        val radius = size.maxDimension * 0.75f
-        val glowAlpha = if (darkTheme) 0.2f else 0.65f
-        val gridColor = if (darkTheme) AmbientTokens.darkGrid else AmbientTokens.grid
-        val glows = listOf(
-            (if (darkTheme) AmbientTokens.darkBlush else AmbientTokens.blush) to androidx.compose.ui.geometry.Offset(size.width * 0.05f, size.height * 0.12f),
-            (if (darkTheme) AmbientTokens.darkLavender else AmbientTokens.lavender) to androidx.compose.ui.geometry.Offset(size.width * 0.95f, size.height * 0.38f),
-            (if (darkTheme) AmbientTokens.darkMint else AmbientTokens.mint) to androidx.compose.ui.geometry.Offset(size.width * 0.25f, size.height * 0.9f)
-        ).map { (color, center) -> androidx.compose.ui.graphics.Brush.radialGradient(listOf(color.copy(alpha = glowAlpha), color.copy(alpha = 0f)), center, radius) }
+        val glows = if (darkTheme) {
+            listOf(
+                GlassTokens.darkSky.copy(alpha = 0.55f) to androidx.compose.ui.geometry.Offset(size.width * 0.08f, size.height * 0.04f),
+                GlassTokens.darkMint.copy(alpha = 0.45f) to androidx.compose.ui.geometry.Offset(size.width * 0.12f, size.height * 0.94f),
+                GlassTokens.darkLavender.copy(alpha = 0.5f) to androidx.compose.ui.geometry.Offset(size.width * 0.98f, size.height * 0.72f)
+            )
+        } else {
+            listOf(
+                GlassTokens.sky.copy(alpha = 0.5f) to androidx.compose.ui.geometry.Offset(size.width * 0.1f, size.height * 0.02f),
+                GlassTokens.mint.copy(alpha = 0.45f) to androidx.compose.ui.geometry.Offset(size.width * 0.06f, size.height * 0.96f),
+                GlassTokens.lavender.copy(alpha = 0.55f) to androidx.compose.ui.geometry.Offset(size.width * 0.98f, size.height * 0.6f)
+            )
+        }
+        val radius = size.maxDimension * 0.62f
         onDrawBehind {
-            drawRect(if (darkTheme) background else AmbientTokens.base)
-            glows.forEach { drawRect(it) }
-            val step = 32.dp.toPx()
-            var x = 0f
-            while (x < size.width) {
-                drawLine(gridColor.copy(alpha = 0.045f), androidx.compose.ui.geometry.Offset(x, 0f), androidx.compose.ui.geometry.Offset(x, size.height), strokeWidth = 1.dp.toPx())
-                x += step
-            }
-            var y = 0f
-            while (y < size.height) {
-                drawLine(gridColor.copy(alpha = 0.045f), androidx.compose.ui.geometry.Offset(0f, y), androidx.compose.ui.geometry.Offset(size.width, y), strokeWidth = 1.dp.toPx())
-                y += step
+            drawRect(if (darkTheme) GlassTokens.darkBase else GlassTokens.base)
+            glows.forEach { (color, center) ->
+                drawCircle(
+                    brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                        listOf(color, color.copy(alpha = 0f)),
+                        center,
+                        radius
+                    ),
+                    radius = radius,
+                    center = center
+                )
             }
         }
     })
 
 private val LightColor = lightColorScheme(
-    primary = Color(0xFF365F9C),
-    onPrimary = Color(0xFFF8FAFF),
-    primaryContainer = Color(0xFFDDE9FA),
-    onPrimaryContainer = Color(0xFF203C65),
-    secondary = Color(0xFF28685D),
-    onSecondary = Color(0xFFF4FCF9),
-    secondaryContainer = Color(0xFFDCEFE7),
-    onSecondaryContainer = Color(0xFF214D43),
-    tertiary = Color(0xFF66568A),
-    onTertiary = Color(0xFFFCF8FF),
-    tertiaryContainer = Color(0xFFE9E2F5),
-    onTertiaryContainer = Color(0xFF44365F),
-    background = Color(0xFFEDF2F7),
-    onBackground = Color(0xFF263447),
-    surface = Color(0xFFF4F7FB),
-    onSurface = Color(0xFF263447),
-    surfaceVariant = Color(0xFFE1E8F0),
-    onSurfaceVariant = Color(0xFF526174),
-    outline = Color(0xFF77869A),
-    outlineVariant = Color(0xFFCCD7E3),
-    surfaceTint = Color(0xFF365F9C),
-    surfaceContainerLowest = Color(0xFFF7F9FC),
-    surfaceContainerLow = Color(0xFFEFF4F9),
-    surfaceContainer = Color(0xFFE7EEF6),
-    surfaceContainerHigh = Color(0xFFE1E8F2),
-    surfaceContainerHighest = Color(0xFFD9E2EE),
+    primary = Color(0xFF2563EB),
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFDBEAFE),
+    onPrimaryContainer = Color(0xFF1E3A8A),
+    secondary = Color(0xFF0F766E),
+    onSecondary = Color(0xFFFFFFFF),
+    secondaryContainer = Color(0xFFD1FAE5),
+    onSecondaryContainer = Color(0xFF065F46),
+    tertiary = Color(0xFF6366F1),
+    onTertiary = Color(0xFFFFFFFF),
+    tertiaryContainer = Color(0xFFE0E7FF),
+    onTertiaryContainer = Color(0xFF3730A3),
+    background = Color(0xFFEEF5FF),
+    onBackground = Color(0xFF0F172A),
+    surface = Color(0xFFFFFFFF),
+    onSurface = Color(0xFF0F172A),
+    surfaceVariant = Color(0xFFE8EEF9),
+    onSurfaceVariant = Color(0xFF64748B),
+    outline = Color(0xFF94A3B8),
+    outlineVariant = Color(0xFFDBE6F5),
+    surfaceTint = Color(0xFF3B82F6),
+    surfaceContainerLowest = Color(0xFFFFFFFF),
+    surfaceContainerLow = Color(0xFFF6FAFF),
+    surfaceContainer = Color(0xFFF1F7FF),
+    surfaceContainerHigh = Color(0xFFE9F1FC),
+    surfaceContainerHighest = Color(0xFFE2ECFA),
 )
 
 object KeyConsoleTokens {

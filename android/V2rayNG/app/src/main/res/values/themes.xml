@@ -1,6 +1,6 @@
 <resources>
-    <color name="window_background_light">#FFF8F9FB</color>
-    <color name="window_background_dark">#FF11151D</color>
+    <color name="window_background_light">#FFEEF5FF</color>
+    <color name="window_background_dark">#FF0B1220</color>
 
     <style name="AppThemeBaseCommon" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>

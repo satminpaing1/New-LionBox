@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -62,6 +63,7 @@ fun ConfirmDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(26.dp),
         title = title?.let { { Text(it) } },
         text = {
             Text(
@@ -91,7 +93,7 @@ fun ConfirmDialog(
                 }
             }
         },
-        containerColor = MaterialTheme.colorScheme.surface
+        containerColor = glassStrongSurfaceColor()
     )
 }
 
@@ -137,6 +139,7 @@ fun InputDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(26.dp),
         title = { Text(title) },
         text = {
             Column(
@@ -171,7 +174,7 @@ fun InputDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(dismissText) }
         },
-        containerColor = MaterialTheme.colorScheme.surface
+        containerColor = glassStrongSurfaceColor()
     )
 }
 
@@ -183,6 +186,7 @@ fun QRCodeDialog(
     if (bitmap == null) return
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(26.dp),
         text = {
             Image(
                 bitmap = bitmap.asImageBitmap(),
@@ -195,7 +199,7 @@ fun QRCodeDialog(
         confirmButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
         },
-        containerColor = MaterialTheme.colorScheme.surface
+        containerColor = glassStrongSurfaceColor()
     )
 }
 
@@ -216,6 +220,7 @@ fun <T> SelectListDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(26.dp),
         title = title?.let { { Text(it) } },
         text = {
             LazyColumn {
@@ -256,6 +261,6 @@ fun <T> SelectListDialog(
                 Text(stringResource(R.string.action_cancel))
             }
         },
-        containerColor = MaterialTheme.colorScheme.surface
+        containerColor = glassStrongSurfaceColor()
     )
 }
