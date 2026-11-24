@@ -79,9 +79,10 @@ svg { display: block; }
   position: relative;
   width: 100%;
   max-width: 460px;
-  min-height: 100dvh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   padding: 0 0 6px;
 }
 
@@ -91,7 +92,7 @@ svg { display: block; }
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 20px 12px;
+  padding: 14px var(--pad) 12px;
   padding-top: max(14px, env(safe-area-inset-top));
   background: linear-gradient(rgba(238, 245, 255, .82), rgba(238, 245, 255, .55));
   backdrop-filter: blur(18px);
@@ -169,9 +170,9 @@ svg { display: block; }
 .menu-panel button.danger:hover { background: rgba(254, 202, 202, .45); }
 
 /* ---------- Main ---------- */
-#main { flex: 1; padding: 4px 20px calc(104px + env(safe-area-inset-bottom)); }
+#main { --pad: 20px; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 4px 0 calc(24px + env(safe-area-inset-bottom)); }
 
-.page { display: flex; flex-direction: column; gap: 16px; animation: page-in .24s var(--ease); }
+.page { padding: 0 var(--pad); display: flex; flex-direction: column; gap: 16px; animation: page-in .24s var(--ease); }
 
 @keyframes page-in {
   from { opacity: 0; transform: translateY(6px); }
@@ -644,11 +645,10 @@ input[type="checkbox"]:checked::after { transform: translateX(18px); }
 
 /* ---------- Floating pill nav ---------- */
 .bottom-nav {
-  position: sticky;
-  bottom: 0;
+  position: relative;
+  flex: 0 0 auto;
   z-index: 20;
   padding: 8px 20px calc(12px + env(safe-area-inset-bottom));
-  margin-top: auto;
 }
 
 .nav-inner {
@@ -778,6 +778,7 @@ textarea[aria-invalid="true"] { border-color: #DC2626; box-shadow: 0 0 0 3px rgb
 
   .phone {
     max-width: 1040px;
+    height: calc(100dvh - 56px);
     min-height: calc(100dvh - 56px);
     border-radius: 44px;
     background: rgba(255, 255, 255, .38);
@@ -791,7 +792,7 @@ textarea[aria-invalid="true"] { border-color: #DC2626; box-shadow: 0 0 0 3px rgb
 
   .appbar { border-radius: 36px 36px 0 0; padding: 18px 28px 12px; }
 
-  #main { padding: 8px 28px 0; }
+  #main { --pad: 28px; padding-top: 8px; }
 
   #page-dashboard {
     display: grid;
@@ -817,7 +818,7 @@ textarea[aria-invalid="true"] { border-color: #DC2626; box-shadow: 0 0 0 3px rgb
 }
 
 @media (max-width: 380px) {
-  #main { padding-left: 16px; padding-right: 16px; }
+  #main { --pad: 16px; }
   .appbar { padding-left: 16px; padding-right: 16px; }
   .bottom-nav { padding-left: 16px; padding-right: 16px; }
   .stat-card { padding: 12px 12px; min-height: 72px; }
