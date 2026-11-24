@@ -1,11 +1,55 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="LionBox">
-  <g>
-    <path d="M112 140 L180 84 L332 84 L400 140 L374 300 L256 456 L138 300 Z" fill="#111A25"/>
-    <path d="M256 84 L332 84 L400 140 L374 300 L256 300 Z" fill="#1B2634"/>
-    <path d="M256 456 L374 300 L256 300 Z" fill="#141D29"/>
-    <path d="M180 84 L332 84 L400 140 L368 156 L144 156 L112 140 Z" fill="#3B4956"/>
-    <path d="M332 84 L400 140 L386 140 L318 84 Z" fill="#FFFFFF" opacity=".14"/>
-    <path d="M112 140 L138 300 L256 456 L268 436 L163 294 L144 156 Z" fill="#14544C"/>
-    <path d="M112 140 L138 300 L256 456" fill="none" stroke="#5EEAD4" stroke-width="7" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="LionBox VPN">
+  <defs>
+    <linearGradient id="ice" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F8FCFF"/>
+      <stop offset="1" stop-color="#D6E8FF"/>
+    </linearGradient>
+    <radialGradient id="sky" cx="0.78" cy="0.14" r="0.62">
+      <stop offset="0" stop-color="#BAE6FD" stop-opacity=".85"/>
+      <stop offset="1" stop-color="#BAE6FD" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="mint" cx="0.14" cy="0.88" r="0.6">
+      <stop offset="0" stop-color="#A7F3D0" stop-opacity=".7"/>
+      <stop offset="1" stop-color="#A7F3D0" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="lav" cx="0.92" cy="0.92" r="0.52">
+      <stop offset="0" stop-color="#DDD6FE" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#DDD6FE" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="left" x1="0" y1="0" x2=".3" y2="1">
+      <stop offset="0" stop-color="#243A56"/>
+      <stop offset="1" stop-color="#122236"/>
+    </linearGradient>
+    <linearGradient id="right" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#101F32"/>
+      <stop offset="1" stop-color="#070F1B"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".6"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="tile"><rect width="512" height="512" rx="118"/></clipPath>
+    <clipPath id="shieldClip">
+      <path d="M256 432C301 411 368 384 374 318L374 204Q374 156 326 154L186 154Q138 156 138 204L138 318C144 384 211 411 256 432Z"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#tile)">
+    <rect width="512" height="512" fill="url(#ice)"/>
+    <rect width="512" height="512" fill="url(#sky)"/>
+    <rect width="512" height="512" fill="url(#mint)"/>
+    <rect width="512" height="512" fill="url(#lav)"/>
+    <rect width="512" height="240" fill="url(#sheen)" opacity=".55"/>
+    <g clip-path="url(#shieldClip)">
+      <rect width="512" height="512" fill="url(#left)"/>
+      <path d="M256 154L374 154L374 432L256 432Z" fill="url(#right)"/>
+      <path d="M186 154L256 154L256 432L196 404C160 380 142 344 138 300L138 204Q138 158 186 154Z" fill="#FFFFFF" opacity=".045"/>
+      <circle cx="256" cy="272" r="96" fill="#5EEAD4" opacity=".08"/>
+    </g>
+    <path d="M256 432C301 411 368 384 374 318L374 204Q374 156 326 154L186 154Q138 156 138 204L138 318C144 384 211 411 256 432Z" fill="none" stroke="#FFFFFF" stroke-opacity=".22" stroke-width="3"/>
+    <path d="M326 155L326 155" stroke="#FFFFFF" stroke-opacity=".4" stroke-width="3" stroke-linecap="round"/>
+    <path d="M369 214L369 314C363 376 301 404 260 424" fill="none" stroke="#5EEAD4" stroke-width="8" stroke-linecap="round" opacity=".9"/>
+    <circle cx="256" cy="244" r="41" fill="#5EEAD4"/>
+    <path d="M234 268L278 268L269 344Q256 356 243 344Z" fill="#5EEAD4"/>
   </g>
+  <rect x="2" y="2" width="508" height="508" rx="116" fill="none" stroke="#FFFFFF" stroke-width="4"/>
 </svg>

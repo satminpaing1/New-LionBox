@@ -542,7 +542,8 @@ class MainViewModel(
         val filteredServers = applyKeywordFilter(servers)
         mutableServerGroupState(groupId).value = ServerGroupUiState(
             servers = filteredServers,
-            rows = buildServerRows(groupId, filteredServers)
+            rows = buildServerRows(groupId, filteredServers),
+            loaded = true
         )
     }
 
@@ -1013,7 +1014,7 @@ class MainViewModel(
         val rows = groupState.rows.toMutableList()
         rows.moveItem(fromPosition, toPosition)
         val guids = servers.map { it.guid }
-        mutableServerGroupState(groupId).value = ServerGroupUiState(servers, rows)
+        mutableServerGroupState(groupId).value = ServerGroupUiState(servers, rows, groupState.loaded)
         // A drag emits several moves; serialize writes so an older order cannot overwrite a newer one.
         val previousPersistenceJob = serverOrderPersistenceJobs[groupId]
         serverOrderPersistenceJobs[groupId] = viewModelScope.launch(ioDispatcher) {

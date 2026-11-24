@@ -42,7 +42,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import com.v2ray.ang.AppConfig
 import com.v2ray.ang.R
 import com.v2ray.ang.dto.GroupMapItem
 import com.v2ray.ang.ui.compose.GlassCard
@@ -773,12 +775,33 @@ private fun LionBoxLogs(modifier: Modifier) {
 
 internal data class ServerTab(val groupId: String, val remarks: String)
 
-/** Default (single keys) first, then every imported subscription, in their saved order. */
-internal fun serverTabs(groups: List<GroupMapItem>, defaultLabel: String): List<ServerTab> =
-    buildList {
-        add(ServerTab("", defaultLabel))
-        groups.filter { it.id.isNotEmpty() }.forEach { add(ServerTab(it.id, it.remarks)) }
+/**
+ * One Default tab first, then every imported subscription in saved order.
+ *
+ * The stored default group (`__default_subscription__`) and the all-servers group (`""`)
+ * are the same logical tab as the built-in Default entry, so whichever of them exists
+ * becomes the first tab and is never repeated. Duplicate group ids collapse to one tab.
+ */
+internal fun serverTabs(groups: List<GroupMapItem>, defaultLabel: String): List<ServerTab> {
+    val defaultId = groups.firstOrNull { it.id.isEmpty() }?.id
+        ?: groups.firstOrNull { it.id == AppConfig.DEFAULT_SUBSCRIPTION_ID }?.id
+        ?: ""
+    val tabs = mutableListOf(ServerTab(defaultId, defaultLabel))
+    val seen = mutableSetOf(defaultId, "", AppConfig.DEFAULT_SUBSCRIPTION_ID)
+    groups.forEach { group ->
+        if (seen.add(group.id)) tabs += ServerTab(group.id, group.remarks)
     }
+    return tabs
+}
+
+/** The empty card belongs to the selected tab only, and only once that tab really has no servers. */
+internal fun shouldShowEmptyState(
+    tabGroupId: String,
+    selectedGroupId: String,
+    loaded: Boolean,
+    serverCount: Int,
+    queryBlank: Boolean
+): Boolean = loaded && queryBlank && serverCount == 0 && tabGroupId == selectedGroupId
 
 /** Default (single keys) plus every imported subscription, side by side and swipeable. */
 @Composable
@@ -796,17 +819,35 @@ private fun LionServersPage(
     val darkTheme = LocalDarkTheme.current
     val defaultLabel = stringResource(R.string.lion_tab_default)
     val tabs = remember(uiState.groups, defaultLabel) { serverTabs(uiState.groups, defaultLabel) }
-    val pagerState = rememberPagerState(pageCount = { tabs.size })
-    val scope = rememberCoroutineScope()
-    val activeTab = tabs.getOrNull(pagerState.currentPage)
+    val tabIds = remember(tabs) { tabs.map { it.groupId } }
+    val pagerState = rememberPagerState(
+        initialPage = remember { tabs.indexOfFirst { it.groupId == uiState.selectedGroupId }.coerceAtLeast(0) },
+        pageCount = { tabs.size }
+    )
+    val activeTab = tabs.getOrNull(pagerState.settledPage)
+    val latestSelectedGroupId by rememberUpdatedState(uiState.selectedGroupId)
+    val latestTabs by rememberUpdatedState(tabs)
+    val latestOnAction by rememberUpdatedState(onAction)
 
-    LaunchedEffect(pagerState.currentPage, tabs) {
-        val id = tabs.getOrNull(pagerState.currentPage)?.groupId ?: return@LaunchedEffect
-        if (id != uiState.selectedGroupId) onAction(MainAction.SelectGroup(id))
+    // Keep the pager on the selected group; an unrepresented selection falls back to the first tab.
+    LaunchedEffect(tabIds, uiState.selectedGroupId) {
+        if (tabIds.isEmpty()) return@LaunchedEffect
+        val index = tabIds.indexOf(uiState.selectedGroupId)
+        if (index >= 0) {
+            if (index != pagerState.settledPage) pagerState.animateScrollToPage(index)
+        } else if (pagerState.settledPage == 0) {
+            onAction(MainAction.SelectGroup(tabIds.first()))
+        }
     }
-    LaunchedEffect(uiState.selectedGroupId, tabs) {
-        val index = tabs.indexOfFirst { it.groupId == uiState.selectedGroupId }
-        if (index >= 0 && index != pagerState.currentPage) pagerState.scrollToPage(index)
+    // A swipe selects its final tab only after the pager settles, never an intermediate page.
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.settledPage }
+            .drop(1)
+            .distinctUntilChanged()
+            .collect { page ->
+                val id = latestTabs.getOrNull(page)?.groupId ?: return@collect
+                if (id != latestSelectedGroupId) latestOnAction(MainAction.SelectGroup(id))
+            }
     }
 
     Column(modifier) {
@@ -869,7 +910,6 @@ private fun LionServersPage(
                                     )
                                     .clickable(role = Role.Tab) {
                                         onAction(MainAction.SelectGroup(tab.groupId))
-                                        scope.launch { pagerState.animateScrollToPage(index) }
                                     }
                                     .semantics {
                                         if (selectedTab) stateDescription = selectedLabel
@@ -1009,19 +1049,33 @@ private fun ServerGroupPage(
     val flow = remember(tab.groupId) { mainViewModel.serverGroupState(tab.groupId) }
     val state by flow.collectAsStateWithLifecycle()
     val rows = remember(state.rows, tab.groupId) {
-        if (tab.groupId.isEmpty()) state.rows.filter { it.profile.subscriptionId.isEmpty() } else state.rows
+        if (tab.groupId.isEmpty()) {
+            state.rows.filter {
+                it.profile.subscriptionId.isEmpty() ||
+                    it.profile.subscriptionId == AppConfig.DEFAULT_SUBSCRIPTION_ID
+            }
+        } else {
+            state.rows
+        }
     }
+    val showEmptyState = shouldShowEmptyState(
+        tabGroupId = tab.groupId,
+        selectedGroupId = uiState.selectedGroupId,
+        loaded = state.loaded,
+        serverCount = rows.size,
+        queryBlank = query.isBlank()
+    )
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        if (rows.isEmpty()) {
+        if (showEmptyState) {
             item(key = "empty") {
                 ConsoleCard {
                     Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(
-                            stringResource(if (query.isBlank()) R.string.lion_empty else R.string.lion_no_results),
+                            stringResource(R.string.lion_empty),
                             fontSize = 17.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = glassTextPrimary()
@@ -1030,6 +1084,19 @@ private fun ServerGroupPage(
                             stringResource(if (tab.groupId.isEmpty()) R.string.lion_dashboard_no_server_detail else R.string.lion_empty_detail),
                             fontSize = 14.sp,
                             color = glassTextSecondary()
+                        )
+                    }
+                }
+            }
+        } else if (state.loaded && rows.isEmpty() && query.isNotBlank()) {
+            item(key = "no_results") {
+                ConsoleCard {
+                    Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            stringResource(R.string.lion_no_results),
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = glassTextPrimary()
                         )
                     }
                 }

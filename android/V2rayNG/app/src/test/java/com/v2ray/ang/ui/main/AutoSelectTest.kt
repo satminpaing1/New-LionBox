@@ -1,8 +1,11 @@
 package com.v2ray.ang.ui.main
 
+import com.v2ray.ang.AppConfig
 import com.v2ray.ang.dto.GroupMapItem
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class AutoSelectTest {
@@ -41,5 +44,39 @@ class AutoSelectTest {
     fun tabsKeepDefaultWhenNoAllGroupExists() {
         val tabs = serverTabs(listOf(GroupMapItem("sub-1", "Sub 1")), "Default")
         assertEquals(listOf("", "sub-1"), tabs.map { it.groupId })
+    }
+
+    @Test
+    fun storedDefaultGroupIsTheSingleDefaultTab() {
+        val groups = listOf(
+            GroupMapItem(AppConfig.DEFAULT_SUBSCRIPTION_ID, "Default"),
+            GroupMapItem("import-sub", "import sub")
+        )
+        val tabs = serverTabs(groups, "Default")
+        assertEquals(listOf(AppConfig.DEFAULT_SUBSCRIPTION_ID, "import-sub"), tabs.map { it.groupId })
+        assertEquals(listOf("Default", "import sub"), tabs.map { it.remarks })
+        assertEquals(1, tabs.count { it.remarks == "Default" })
+    }
+
+    @Test
+    fun tabsCollapseDuplicateGroupsAndKeepDefaultFirst() {
+        val groups = listOf(
+            GroupMapItem("import-sub", "import sub"),
+            GroupMapItem(AppConfig.DEFAULT_SUBSCRIPTION_ID, "Default"),
+            GroupMapItem("import-sub", "import sub"),
+            GroupMapItem("", "All")
+        )
+        val tabs = serverTabs(groups, "Default")
+        assertEquals(listOf("", "import-sub"), tabs.map { it.groupId })
+        assertEquals(listOf("Default", "import sub"), tabs.map { it.remarks })
+    }
+
+    @Test
+    fun emptyStateOnlyForTheLoadedSelectedTabWithoutServers() {
+        assertTrue(shouldShowEmptyState("g", "g", loaded = true, serverCount = 0, queryBlank = true))
+        assertFalse(shouldShowEmptyState("g", "g", loaded = true, serverCount = 1, queryBlank = true))
+        assertFalse(shouldShowEmptyState("g", "g", loaded = false, serverCount = 0, queryBlank = true))
+        assertFalse(shouldShowEmptyState("other", "g", loaded = true, serverCount = 0, queryBlank = true))
+        assertFalse(shouldShowEmptyState("g", "g", loaded = true, serverCount = 0, queryBlank = false))
     }
 }

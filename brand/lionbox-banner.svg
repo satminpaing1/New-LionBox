@@ -1,10 +1,54 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180">
+  <defs>
+    <linearGradient id="ice" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F8FCFF"/>
+      <stop offset="1" stop-color="#D6E8FF"/>
+    </linearGradient>
+    <radialGradient id="sky" cx="0.78" cy="0.14" r="0.62">
+      <stop offset="0" stop-color="#BAE6FD" stop-opacity=".85"/>
+      <stop offset="1" stop-color="#BAE6FD" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="mint" cx="0.14" cy="0.88" r="0.6">
+      <stop offset="0" stop-color="#A7F3D0" stop-opacity=".7"/>
+      <stop offset="1" stop-color="#A7F3D0" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="lav" cx="0.92" cy="0.92" r="0.52">
+      <stop offset="0" stop-color="#DDD6FE" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#DDD6FE" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="left" x1="0" y1="0" x2=".3" y2="1">
+      <stop offset="0" stop-color="#243A56"/>
+      <stop offset="1" stop-color="#122236"/>
+    </linearGradient>
+    <linearGradient id="right" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#101F32"/>
+      <stop offset="1" stop-color="#070F1B"/>
+    </linearGradient>
+    <clipPath id="tile"><rect width="512" height="512" rx="118"/></clipPath>
+    <clipPath id="shieldClip">
+      <path d="M256 432C301 411 368 384 374 318L374 204Q374 156 326 154L186 154Q138 156 138 204L138 318C144 384 211 411 256 432Z"/>
+    </clipPath>
+  </defs>
   <rect width="320" height="180" fill="#FFFFFF"/>
   <g transform="translate(26 30) scale(.234)">
-    <rect width="512" height="512" rx="118" fill="#07090F"/>
-    <path d="M256 434 L158 302 L126 192 L186 118 L256 118 Z" fill="#FFFFFF"/>
-    <path d="M256 118 L326 118 L386 192 L354 302 L256 434 Z" fill="#D3DFEC"/>
-    <path d="M282 176 L196 296 L250 296 L230 368 L318 246 L264 246 Z" fill="#5EEAD4"/>
+    <g clip-path="url(#tile)">
+      <rect width="512" height="512" fill="url(#ice)"/>
+      <rect width="512" height="512" fill="url(#sky)"/>
+      <rect width="512" height="512" fill="url(#mint)"/>
+      <rect width="512" height="512" fill="url(#lav)"/>
+      <g clip-path="url(#shieldClip)">
+        <rect width="512" height="512" fill="url(#left)"/>
+        <path d="M256 154L374 154L374 432L256 432Z" fill="url(#right)"/>
+        <path d="M186 154L256 154L256 432L196 404C160 380 142 344 138 300L138 204Q138 158 186 154Z" fill="#FFFFFF" opacity=".045"/>
+        <circle cx="256" cy="272" r="96" fill="#5EEAD4" opacity=".08"/>
+      </g>
+      <path d="M256 432C301 411 368 384 374 318L374 204Q374 156 326 154L186 154Q138 156 138 204L138 318C144 384 211 411 256 432Z" fill="none" stroke="#FFFFFF" stroke-opacity=".22" stroke-width="3"/>
+      <path d="M369 214L369 314C363 376 301 404 260 424" fill="none" stroke="#5EEAD4" stroke-width="8" stroke-linecap="round" opacity=".9"/>
+      <circle cx="256" cy="244" r="41" fill="#5EEAD4"/>
+      <path d="M234 268L278 268L269 344Q256 356 243 344Z" fill="#5EEAD4"/>
+    </g>
+    <rect x="2" y="2" width="508" height="508" rx="116" fill="none" stroke="#FFFFFF" stroke-width="4"/>
   </g>
-  <text x="170" y="102" font-family="Liberation Sans" font-size="34" font-weight="bold" fill="#07090F" letter-spacing="-0.5">LionBox</text>
+  <text x="170" y="98" font-family="Liberation Sans" font-size="34" font-weight="bold" fill="#122236" letter-spacing="-0.5">LionBox</text>
+  <text x="170" y="126" font-family="Liberation Sans" font-size="20" font-weight="bold" fill="#5F7A96" letter-spacing="2.4">VPN</text>
 </svg>
