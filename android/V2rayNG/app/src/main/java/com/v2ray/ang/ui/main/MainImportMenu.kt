@@ -69,7 +69,12 @@ fun ImportMenuContent(onAction: (MainAction) -> Unit) = AppDropdownMenuItems(
 fun MoreMenuContent(onSelected: (MainMoreMenuAction) -> Unit) = AppDropdownMenuItems(
     items = MainMoreMenuAction.entries,
     labelRes = { it.labelRes },
-    onSelected = onSelected
+    onSelected = onSelected,
+    destructive = {
+        it == MainMoreMenuAction.DeleteAll ||
+            it == MainMoreMenuAction.DeleteDuplicate ||
+            it == MainMoreMenuAction.DeleteInvalid
+    }
 )
 
 @Composable

@@ -71,7 +71,66 @@ object GlassTints {
     val cyan = Color(0xFFCFFAFE)
     val amber = Color(0xFFFFEDD5)
     val periwinkle = Color(0xFFEEF2FF)
+
+    /** Cool ice-indigo used by the exit-IP card: 65% pastel so it reads indigo, not yellow. */
+    val mist = Color(0xFFE0E7FF)
 }
+
+/**
+ * Menu and dialog glass. Popups get their own cool-tinted frost instead of a plain white box,
+ * with a white hairline and zero elevation so no dark hardware shadow leaks through.
+ */
+object GlassMenuTokens {
+    val surface = Color(0xFFEBF2FF)
+    val surfaceFillLight = Color(0xEBEBF2FF)
+    val surfaceTop = Color(0xFFF0F6FF)
+    val surfaceBottom = Color(0xFFF3EEFF)
+    val ink = Color(0xFF0F172A)
+    val action = Color(0xFF2563EB)
+    val destructive = Color(0xFFDC2626)
+    val destructiveText = Color(0xFFB91C1C)
+    val actionTint = Color(0xFFDBEAFE)
+    val destructiveTint = Color(0xFFFEE2E2)
+    val ripple = Color(0x59C7D2FE)
+    val divider = Color(0x3394A3B8)
+    val radius = 20.dp
+    val itemVerticalPadding = 13.dp
+
+    val darkSurface = Color(0xE62B3446)
+    val darkInk = Color(0xFFF1F5F9)
+    val darkAction = Color(0xFF93C5FD)
+    val darkDestructive = Color(0xFFFCA5A5)
+    val darkBorder = Color(0x2EFFFFFF)
+    val darkRipple = Color(0x4DC7D2FE)
+}
+
+@Composable
+fun glassMenuSurfaceColor(): Color =
+    if (LocalDarkTheme.current) GlassMenuTokens.darkSurface else GlassMenuTokens.surfaceFillLight
+
+@Composable
+fun glassMenuBorderColor(): Color =
+    if (LocalDarkTheme.current) GlassMenuTokens.darkBorder else Color(0xFFFFFFFF)
+
+@Composable
+fun glassMenuItemInkColor(): Color =
+    if (LocalDarkTheme.current) GlassMenuTokens.darkInk else Color(0xFF0F172A)
+
+@Composable
+fun glassMenuActionColor(): Color =
+    if (LocalDarkTheme.current) GlassMenuTokens.darkAction else GlassMenuTokens.action
+
+@Composable
+fun glassMenuDestructiveColor(): Color =
+    if (LocalDarkTheme.current) GlassMenuTokens.darkDestructive else GlassMenuTokens.destructive
+
+@Composable
+fun glassMenuDestructiveTextColor(): Color =
+    if (LocalDarkTheme.current) GlassMenuTokens.darkDestructive else GlassMenuTokens.destructiveText
+
+@Composable
+fun glassMenuRippleColor(): Color =
+    if (LocalDarkTheme.current) GlassMenuTokens.darkRipple else GlassMenuTokens.ripple
 
 /**
  * Material elevation is always zero on glass: a hardware shadow bleeds through a translucent fill
@@ -79,9 +138,12 @@ object GlassTints {
  */
 val glassCardElevation = 0.dp
 
-/** Frosted pastel fill: 90% pastel in light mode so the hue survives the aurora, a faint veil in dark mode. */
-fun glassTintFill(tint: Color, dark: Boolean): Color =
-    tint.copy(alpha = if (dark) 0.14f else 0.90f)
+/**
+ * Frosted pastel fill: 90% pastel in light mode so the hue survives the aurora, a faint veil in
+ * dark mode. Individual cards may ask for a lighter wash (the exit-IP card uses 65%).
+ */
+fun glassTintFill(tint: Color, dark: Boolean, lightAlpha: Float = 0.90f): Color =
+    tint.copy(alpha = if (dark) 0.14f else lightAlpha)
 
 @Composable
 fun glassTintColor(tint: Color): Color = glassTintFill(tint, LocalDarkTheme.current)
@@ -124,12 +186,17 @@ fun GlassCard(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(24.dp),
     tint: Color? = null,
+    tintAlpha: Float? = null,
     content: @Composable () -> Unit
 ) {
     Surface(
         modifier = modifier,
         shape = shape,
-        color = if (tint == null) glassSurfaceColor() else glassTintColor(tint),
+        color = when {
+            tint == null -> glassSurfaceColor()
+            tintAlpha == null -> glassTintColor(tint)
+            else -> glassTintFill(tint, LocalDarkTheme.current, tintAlpha)
+        },
         contentColor = glassTextPrimary(),
         border = BorderStroke(1.dp, glassBorderColor()),
         shadowElevation = glassCardElevation,

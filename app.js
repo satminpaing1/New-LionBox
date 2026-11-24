@@ -5,6 +5,8 @@
     plus: 'M12 5v14M5 12h14',
     download: 'M12 3v12m0 0l-4-4m4 4l4-4M5 21h14',
     x: 'M6 6l12 12M18 6L6 18',
+    dots: 'M12 5h.01M12 12h.01M12 19h.01',
+    copy: 'M9 9h10v10H9zM5 15V5h10',
     search: 'M11 4a7 7 0 1 1 0 14 7 7 0 0 1 0-14zm5 12l4 4',
     power: 'M12 3v9M6.3 6.3a8 8 0 1 0 11.4 0',
     activity: 'M3 12h4l3-8 4 16 3-8h4',
@@ -118,20 +120,67 @@
     $('stat-network').textContent = p ? (p.network || 'tcp') : '—';
   }
 
+  function closeServerMenus() {
+    document.querySelectorAll('.server-menu').forEach(menu => {
+      menu.hidden = true;
+      const btn = menu.parentElement.querySelector('.menu-btn');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    });
+  }
+
   function serverCard(p) {
     const div = document.createElement('div');
     div.className = 'server-card';
     const selected = selectedProfile() === p;
     div.dataset.selected = selected;
     const protoLabel = [p.protocol || 'VLESS', p.network, p.security].filter(Boolean).join(' / ');
-    div.innerHTML = '<span class="server-icon"><span data-icon="lion"></span></span>' +
-      '<button class="info select-server" aria-pressed="' + selected + '"><strong>' + escapeHtml(displayName(p)) + '</strong><span class="badges"><span class="pill pill-proto">' + escapeHtml(protoLabel) + '</span><span class="server-meta">******</span><span class="pill pill-mint" title="Latency ကို Android app တွင် တိုင်းတာသည်">—</span></span></button>' +
-      '<button class="del" aria-label="Server ဖျက်မည်"><span data-icon="trash"></span></button>';
-    div.querySelector('.select-server').addEventListener('click', () => { selectedRaw = p.raw; renderAll(); });
-    div.querySelector('.del').addEventListener('click', () => removeProfile(p));
+    div.innerHTML = '<div class="server-title"><span class="server-icon"><span data-icon="lion"></span></span>' +
+      '<button class="server-name select-server" aria-pressed="' + selected + '">' + escapeHtml(displayName(p)) + '</button></div>' +
+      '<div class="server-line">' +
+        '<button class="badges select-server" aria-pressed="' + selected + '" aria-label="' + escapeHtml(displayName(p)) + ' ကို ရွေးမည်">' +
+          '<span class="pill pill-proto">' + escapeHtml(protoLabel) + '</span>' +
+          '<span class="server-meta">******</span>' +
+          '<span class="pill pill-mint" title="Latency ကို Android app တွင် တိုင်းတာသည်">—</span>' +
+        '</button>' +
+        '<div class="server-actions">' +
+          '<button class="circle-btn menu-btn" aria-label="Server menu" aria-haspopup="menu" aria-expanded="false"><span data-icon="dots"></span></button>' +
+          '<button class="circle-btn danger del" aria-label="Server ဖျက်မည်"><span data-icon="trash"></span></button>' +
+          '<div class="menu-panel server-menu" role="menu" hidden>' +
+            '<button type="button" role="menuitem" data-act="copy"><span data-icon="copy"></span>Key ကူးယူမည်</button>' +
+            '<button type="button" role="menuitem" class="danger" data-act="delete"><span data-icon="trash"></span>Server ဖျက်မည်</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    div.querySelectorAll('.select-server').forEach(btn => btn.addEventListener('click', () => { selectedRaw = p.raw; renderAll(); }));
+    const menuBtn = div.querySelector('.menu-btn');
+    const menu = div.querySelector('.server-menu');
+    menuBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const willOpen = menu.hidden;
+      closeServerMenus();
+      menu.hidden = !willOpen;
+      menuBtn.setAttribute('aria-expanded', String(willOpen));
+    });
+    menu.addEventListener('click', (event) => event.stopPropagation());
+    menu.querySelector('[data-act="copy"]').addEventListener('click', () => {
+      closeServerMenus();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(p.raw).then(
+          () => toast('Key ကို ကူးယူပြီးပါပြီ'),
+          () => toast('Key ကို ကူးယူနိုင်ခြင်းမရှိပါ')
+        );
+      } else {
+        toast('Key ကို ကူးယူနိုင်ခြင်းမရှိပါ');
+      }
+    });
+    div.querySelector('.del').addEventListener('click', (event) => { event.stopPropagation(); closeServerMenus(); removeProfile(p); });
+    menu.querySelector('[data-act="delete"]').addEventListener('click', () => { closeServerMenus(); removeProfile(p); });
     renderIcons(div);
     return div;
   }
+
+  document.addEventListener('click', closeServerMenus);
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeServerMenus(); });
 
   function showPage(page) {
     currentPage = page;

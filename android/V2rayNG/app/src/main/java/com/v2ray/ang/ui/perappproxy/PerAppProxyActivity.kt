@@ -48,6 +48,7 @@ import com.v2ray.ang.ui.compose.AppDropdownMenuItems
 import com.v2ray.ang.ui.compose.AppListItem
 import com.v2ray.ang.ui.compose.AppTopBar
 import com.v2ray.ang.ui.compose.ConfirmDialog
+import com.v2ray.ang.ui.compose.GlassDropdownMenu
 import com.v2ray.ang.ui.compose.ItemDivider
 import com.v2ray.ang.ui.compose.NavigationBarsBottomPadding
 import com.v2ray.ang.ui.compose.verticalScrollbar
@@ -169,10 +170,9 @@ fun PerAppProxyScreen(
                                 contentDescription = stringResource(R.string.acc_more)
                             )
                         }
-                        DropdownMenu(
+                        GlassDropdownMenu(
                             expanded = showMenu,
-                            onDismissRequest = { showMenu = false },
-                            containerColor = MaterialTheme.colorScheme.surface
+                            onDismissRequest = { showMenu = false }
                         ) {
                             AppDropdownMenuItems(PerAppMenuAction.entries, { it.labelRes }) { action ->
                                 showMenu = false

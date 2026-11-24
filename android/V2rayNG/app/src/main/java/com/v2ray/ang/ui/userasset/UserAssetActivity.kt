@@ -58,6 +58,7 @@ import com.v2ray.ang.ui.base.HelperBaseComponentActivity
 import com.v2ray.ang.ui.compose.AppDropdownMenuItems
 import com.v2ray.ang.ui.compose.AppTopBar
 import com.v2ray.ang.ui.compose.DeleteConfirmDialog
+import com.v2ray.ang.ui.compose.GlassDropdownMenu
 import com.v2ray.ang.ui.compose.ItemDivider
 import com.v2ray.ang.ui.compose.NavigationBarsBottomPadding
 import com.v2ray.ang.ui.compose.SettingsListItem
@@ -280,10 +281,9 @@ internal fun UserAssetScreen(
                         IconButton(onClick = { showAddMenu = true }) {
                             Icon(painterResource(R.drawable.ic_add_24dp), contentDescription = stringResource(R.string.acc_add_asset))
                         }
-                        DropdownMenu(
+                        GlassDropdownMenu(
                             expanded = showAddMenu,
                             onDismissRequest = { showAddMenu = false },
-                            containerColor = MaterialTheme.colorScheme.surface,
                             offset = DpOffset(x = 0.dp, y = 0.dp),
                             modifier = Modifier.wrapContentWidth(Alignment.End)
                         ) {

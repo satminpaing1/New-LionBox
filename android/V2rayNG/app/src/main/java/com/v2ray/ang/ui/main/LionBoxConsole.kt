@@ -40,7 +40,12 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.v2ray.ang.R
 import com.v2ray.ang.ui.compose.GlassCard
+import com.v2ray.ang.ui.compose.GlassDropdownMenu
+import com.v2ray.ang.ui.compose.GlassDropdownMenuItem
+import com.v2ray.ang.ui.compose.GlassMenuTokens
 import com.v2ray.ang.ui.compose.GlassTokens
+import com.v2ray.ang.ui.compose.glassMenuBorderColor
+import com.v2ray.ang.ui.compose.glassMenuSurfaceColor
 import com.v2ray.ang.ui.compose.LocalDarkTheme
 import com.v2ray.ang.ui.compose.ambientBackground
 import com.v2ray.ang.ui.compose.glassBorderColor
@@ -130,8 +135,8 @@ internal fun LionBoxConsole(
                     IconButton(onClick = { importMenu = true }, enabled = !isLoading) {
                         Icon(painterResource(R.drawable.ic_add_24dp), stringResource(R.string.menu_item_add_config), tint = glassTextPrimary())
                     }
-                    DropdownMenu(expanded = importMenu, onDismissRequest = { importMenu = false }) {
-                        DropdownMenuItem(text = { Text(stringResource(R.string.lion_paste)) }, onClick = { importMenu = false; importVisible = true })
+                    GlassDropdownMenu(expanded = importMenu, onDismissRequest = { importMenu = false }) {
+                        GlassDropdownMenuItem(text = { Text(stringResource(R.string.lion_paste)) }, onClick = { importMenu = false; importVisible = true })
                         ImportMenuContent { importMenu = false; onAction(it) }
                     }
                 }
@@ -139,7 +144,7 @@ internal fun LionBoxConsole(
                     IconButton(onClick = { moreMenu = true }) {
                         Icon(painterResource(R.drawable.ic_more_vert_24dp), stringResource(R.string.lion_tools), tint = glassTextPrimary())
                     }
-                    DropdownMenu(expanded = moreMenu, onDismissRequest = { moreMenu = false }) {
+                    GlassDropdownMenu(expanded = moreMenu, onDismissRequest = { moreMenu = false }) {
                         MoreMenuContent { moreMenu = false; onMoreMenuAction(it) }
                     }
                 }
@@ -287,9 +292,9 @@ internal fun LionBoxConsole(
                                 border = BorderStroke(1.dp, glassHairlineColor()),
                                 colors = ButtonDefaults.outlinedButtonColors(containerColor = glassSurfaceColor(), contentColor = glassTextPrimary())
                             ) { Text(uiState.groups.firstOrNull { it.id == uiState.selectedGroupId }?.remarks.orEmpty()) }
-                            DropdownMenu(expanded = groupMenu, onDismissRequest = { groupMenu = false }) {
+                            GlassDropdownMenu(expanded = groupMenu, onDismissRequest = { groupMenu = false }) {
                                 uiState.groups.forEach { entry ->
-                                    DropdownMenuItem(text = { Text(entry.remarks) }, onClick = { groupMenu = false; onAction(MainAction.SelectGroup(entry.id)) })
+                                    GlassDropdownMenuItem(text = { Text(entry.remarks) }, onClick = { groupMenu = false; onAction(MainAction.SelectGroup(entry.id)) })
                                 }
                             }
                         }
@@ -353,8 +358,10 @@ internal fun LionBoxConsole(
     if (importVisible) {
         AlertDialog(
             onDismissRequest = { if (!isLoading) importVisible = false },
-            shape = RoundedCornerShape(26.dp),
-            containerColor = colors.surface,
+            shape = RoundedCornerShape(GlassMenuTokens.radius),
+            modifier = Modifier.border(1.dp, glassMenuBorderColor(), RoundedCornerShape(GlassMenuTokens.radius)),
+            containerColor = glassMenuSurfaceColor(),
+            tonalElevation = 0.dp,
             title = { Text(stringResource(R.string.lion_paste)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -393,32 +400,39 @@ private fun LionServerCard(row: ServerRowUiModel, selected: Boolean, onSelect: (
         border = BorderStroke(1.dp, if (selected) Color(0xFFFFFFFF) else glassBorderColor()),
         shadowElevation = 0.dp
     ) {
-        Row(
+        Column(
             Modifier.fillMaxWidth()
                 .clickable(role = Role.RadioButton, onClick = onSelect)
                 .semantics(mergeDescendants = true) { stateDescription = stateLabel }
-                .padding(start = 16.dp, end = 6.dp, top = 10.dp, bottom = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                .padding(start = 16.dp, end = 10.dp, top = 11.dp, bottom = 11.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Icon(
-                        painterResource(R.drawable.ic_vpn_monochrome),
-                        contentDescription = null,
-                        modifier = Modifier.size(15.dp),
-                        tint = Color(0xFFF97316)
-                    )
-                    Text(
-                        row.remarks,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = glassTextPrimary(),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(
+                    painterResource(R.drawable.ic_vpn_monochrome),
+                    contentDescription = null,
+                    modifier = Modifier.size(15.dp),
+                    tint = Color(0xFFF97316)
+                )
+                Text(
+                    row.remarks,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = glassTextPrimary(),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     Surface(
                         shape = RoundedCornerShape(999.dp),
                         color = if (darkTheme) Color(0x334338CA) else GlassTokens.ascent
@@ -428,12 +442,14 @@ private fun LionServerCard(row: ServerRowUiModel, selected: Boolean, onSelect: (
                             Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (darkTheme) Color(0xFFC7D2FE) else GlassTokens.ascentText
+                            color = if (darkTheme) Color(0xFFC7D2FE) else GlassTokens.ascentText,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                     Text(
                         row.statistics,
-                        Modifier.weight(1f),
+                        Modifier.weight(1f, fill = false),
                         fontSize = 11.sp,
                         letterSpacing = 1.sp,
                         color = glassTextSecondary(),
@@ -457,13 +473,51 @@ private fun LionServerCard(row: ServerRowUiModel, selected: Boolean, onSelect: (
                         )
                     }
                 }
+                CircleActionButton(
+                    icon = R.drawable.ic_more_vert_24dp,
+                    label = stringResource(R.string.lion_tools),
+                    background = if (darkTheme) Color(0x33DBEAFE) else GlassMenuTokens.actionTint,
+                    iconTint = if (darkTheme) Color(0xFF93C5FD) else Color(0xFF1E40AF),
+                    onClick = onMore
+                )
+                CircleActionButton(
+                    icon = R.drawable.ic_delete_24dp,
+                    label = stringResource(R.string.action_delete),
+                    background = if (darkTheme) Color(0x33FEE2E2) else GlassMenuTokens.destructiveTint,
+                    iconTint = if (darkTheme) Color(0xFFFCA5A5) else GlassMenuTokens.destructive,
+                    onClick = onRemove
+                )
             }
-            IconButton(onClick = onMore, modifier = Modifier.size(44.dp)) {
-                Icon(painterResource(R.drawable.ic_more_vert_24dp), stringResource(R.string.lion_tools), modifier = Modifier.size(20.dp), tint = glassTextSecondary())
-            }
-            IconButton(onClick = onRemove, modifier = Modifier.size(44.dp)) {
-                Icon(painterResource(R.drawable.ic_delete_24dp), stringResource(R.string.action_delete), modifier = Modifier.size(20.dp), tint = glassTextSecondary())
-            }
+        }
+    }
+}
+
+/** 36dp pastel circle with a 44dp touch target, flat (no elevation). */
+@Composable
+private fun CircleActionButton(
+    icon: Int,
+    label: String,
+    background: Color,
+    iconTint: Color,
+    onClick: () -> Unit
+) {
+    Box(
+        Modifier
+            .size(44.dp)
+            .clip(CircleShape)
+            .clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            Modifier.size(36.dp).background(background, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painterResource(icon),
+                contentDescription = label,
+                modifier = Modifier.size(18.dp),
+                tint = iconTint
+            )
         }
     }
 }

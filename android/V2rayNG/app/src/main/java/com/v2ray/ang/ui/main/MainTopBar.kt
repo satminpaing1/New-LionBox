@@ -25,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.v2ray.ang.R
 import com.v2ray.ang.ui.compose.AppTopBar
+import com.v2ray.ang.ui.compose.GlassDropdownMenu
 import com.v2ray.ang.ui.compose.verticalScrollbar
 
 @Composable
@@ -77,11 +78,10 @@ fun MainTopBar(
                 IconButton(onClick = { showImportMenu = true }) {
                     Icon(painterResource(R.drawable.ic_add_24dp), contentDescription = stringResource(R.string.acc_add))
                 }
-                DropdownMenu(
+                GlassDropdownMenu(
                     expanded = showImportMenu,
                     onDismissRequest = { showImportMenu = false },
                     scrollState = importMenuScrollState,
-                    containerColor = MaterialTheme.colorScheme.surface,
                     modifier = Modifier
                         .heightIn(max = maxMenuHeight)
                         .verticalScrollbar(importMenuScrollState)
@@ -98,11 +98,10 @@ fun MainTopBar(
                 IconButton(onClick = { showMenu = true }) {
                     Icon(painterResource(R.drawable.ic_more_vert_24dp), contentDescription = stringResource(R.string.acc_more))
                 }
-                DropdownMenu(
+                GlassDropdownMenu(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false },
                     scrollState = moreMenuScrollState,
-                    containerColor = MaterialTheme.colorScheme.surface,
                     modifier = Modifier
                         .heightIn(max = maxMenuHeight)
                         .verticalScrollbar(moreMenuScrollState)

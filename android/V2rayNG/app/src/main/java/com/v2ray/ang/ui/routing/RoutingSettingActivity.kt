@@ -53,6 +53,7 @@ import com.v2ray.ang.handler.SettingsManager
 import com.v2ray.ang.ui.base.HelperBaseComponentActivity
 import com.v2ray.ang.ui.compose.AppDropdownMenuItems
 import com.v2ray.ang.ui.compose.AppTopBar
+import com.v2ray.ang.ui.compose.GlassDropdownMenu
 import com.v2ray.ang.ui.compose.ItemDivider
 import com.v2ray.ang.ui.compose.NavigationBarsBottomPadding
 import com.v2ray.ang.ui.compose.ReorderableListItem
@@ -235,10 +236,9 @@ fun RoutingSettingScreen(
                                 contentDescription = stringResource(R.string.acc_more)
                             )
                         }
-                        DropdownMenu(
+                        GlassDropdownMenu(
                             expanded = showMenu,
-                            onDismissRequest = { showMenu = false },
-                            containerColor = MaterialTheme.colorScheme.surface
+                            onDismissRequest = { showMenu = false }
                         ) {
                             AppDropdownMenuItems(RoutingMenuAction.entries, { it.labelRes }) { action ->
                                 showMenu = false

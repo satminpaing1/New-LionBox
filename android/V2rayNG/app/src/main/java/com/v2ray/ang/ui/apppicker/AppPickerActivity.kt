@@ -34,6 +34,7 @@ import com.v2ray.ang.ui.base.BaseComponentActivity
 import com.v2ray.ang.ui.compose.AppDropdownMenuItems
 import com.v2ray.ang.ui.compose.AppListItem
 import com.v2ray.ang.ui.compose.AppTopBar
+import com.v2ray.ang.ui.compose.GlassDropdownMenu
 import com.v2ray.ang.ui.compose.ItemDivider
 import com.v2ray.ang.ui.compose.NavigationBarsBottomPadding
 import com.v2ray.ang.ui.compose.verticalScrollbar
@@ -162,10 +163,9 @@ fun AppPickerScreen(
                                 contentDescription = null
                             )
                         }
-                        DropdownMenu(
+                        GlassDropdownMenu(
                             expanded = showMenu,
-                            onDismissRequest = { showMenu = false },
-                            containerColor = MaterialTheme.colorScheme.surface
+                            onDismissRequest = { showMenu = false }
                         ) {
                             AppDropdownMenuItems(AppPickerMenuAction.entries, { it.labelRes }) { action ->
                                 showMenu = false

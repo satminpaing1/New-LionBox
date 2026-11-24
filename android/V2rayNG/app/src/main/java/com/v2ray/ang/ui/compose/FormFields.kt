@@ -1,9 +1,11 @@
 package com.v2ray.ang.ui.compose
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material3.DropdownMenuItem
@@ -137,10 +139,14 @@ fun FormDropdownField(
             onDismissRequest = { expanded = false },
             modifier = Modifier.verticalScrollbar(menuScrollState),
             scrollState = menuScrollState,
-            containerColor = MaterialTheme.colorScheme.surface
+            shape = RoundedCornerShape(GlassMenuTokens.radius),
+            containerColor = glassMenuSurfaceColor(),
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp,
+            border = BorderStroke(1.dp, glassMenuBorderColor())
         ) {
             options.forEach { option ->
-                DropdownMenuItem(
+                GlassDropdownMenuItem(
                     text = { Text(option) },
                     onClick = {
                         onValueChange(option)

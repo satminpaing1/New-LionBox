@@ -62,6 +62,38 @@ class ThemeColorsTest {
         }
     }
 
+    @Test
+    fun `exit ip card uses cool mist instead of yellow`() {
+        assertEquals(Color(0xFFE0E7FF), GlassTints.mist, "exit-IP card takes the ice-indigo hue")
+        val fill = glassTintFill(GlassTints.mist, dark = false, lightAlpha = 0.65f)
+        assertEquals(Color(0xA6E0E7FF), fill, "exit-IP card is 65% periwinkle frost")
+        val composited = blendOverWhite(fill)
+        val contrast = contrast(GlassTokens.ink, composited)
+        assertTrue(contrast >= 4.5, "exit-IP ink has contrast $contrast")
+    }
+
+    @Test
+    fun `popup menus and dialogs use the frosted glass palette`() {
+        assertEquals(Color(0xFFEBF2FF), GlassMenuTokens.surface, "menu surface is cool ice-blue")
+        assertEquals(Color(0xFF0F172A), GlassMenuTokens.ink, "menu text is deep navy")
+        assertEquals(Color(0xFF2563EB), GlassMenuTokens.action, "normal menu icons are royal blue")
+        assertEquals(Color(0xFFDC2626), GlassMenuTokens.destructive, "delete icons are crimson")
+        assertEquals(Color(0x59C7D2FE), GlassMenuTokens.ripple, "press ripple is 35% periwinkle")
+        assertEquals(Color(0x3394A3B8), GlassMenuTokens.divider, "dividers are 20% slate")
+        assertEquals(Color(0xFFDBEAFE), GlassMenuTokens.actionTint, "3-dot circle is pastel periwinkle")
+        assertEquals(Color(0xFFFEE2E2), GlassMenuTokens.destructiveTint, "trash circle is pastel rose")
+        assertEquals(20.dp, GlassMenuTokens.radius, "menus and dialogs use 20dp corners")
+        assertEquals(0xEB, (GlassMenuTokens.surfaceFillLight.alpha * 255).toInt(), "menu frost sits at about 92%")
+
+        val surface = Color(0xFFEBF2FF)
+        assertTrue(contrast(GlassMenuTokens.ink, surface) >= 4.5, "menu ink is readable on the frost")
+        assertTrue(
+            contrast(GlassMenuTokens.destructiveText, surface) >= 4.5,
+            "destructive menu text is readable on the frost"
+        )
+        assertTrue(contrast(GlassMenuTokens.action, surface) >= 4.5, "royal-blue menu icons are readable")
+    }
+
     private fun blendOverWhite(color: Color): Color = Color(
         red = color.red * color.alpha + (1f - color.alpha),
         green = color.green * color.alpha + (1f - color.alpha),

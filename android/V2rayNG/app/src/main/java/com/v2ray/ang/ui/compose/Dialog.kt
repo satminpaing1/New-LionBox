@@ -2,6 +2,7 @@ package com.v2ray.ang.ui.compose
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -63,7 +64,8 @@ fun ConfirmDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(GlassMenuTokens.radius),
+        modifier = Modifier.border(1.dp, glassMenuBorderColor(), RoundedCornerShape(GlassMenuTokens.radius)),
         title = title?.let { { Text(it) } },
         text = {
             Text(
@@ -93,7 +95,8 @@ fun ConfirmDialog(
                 }
             }
         },
-        containerColor = glassStrongSurfaceColor()
+        containerColor = glassMenuSurfaceColor(),
+        tonalElevation = 0.dp
     )
 }
 
@@ -139,7 +142,8 @@ fun InputDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(GlassMenuTokens.radius),
+        modifier = Modifier.border(1.dp, glassMenuBorderColor(), RoundedCornerShape(GlassMenuTokens.radius)),
         title = { Text(title) },
         text = {
             Column(
@@ -174,7 +178,8 @@ fun InputDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(dismissText) }
         },
-        containerColor = glassStrongSurfaceColor()
+        containerColor = glassMenuSurfaceColor(),
+        tonalElevation = 0.dp
     )
 }
 
@@ -186,7 +191,8 @@ fun QRCodeDialog(
     if (bitmap == null) return
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(GlassMenuTokens.radius),
+        modifier = Modifier.border(1.dp, glassMenuBorderColor(), RoundedCornerShape(GlassMenuTokens.radius)),
         text = {
             Image(
                 bitmap = bitmap.asImageBitmap(),
@@ -199,7 +205,8 @@ fun QRCodeDialog(
         confirmButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
         },
-        containerColor = glassStrongSurfaceColor()
+        containerColor = glassMenuSurfaceColor(),
+        tonalElevation = 0.dp
     )
 }
 
@@ -220,7 +227,8 @@ fun <T> SelectListDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(GlassMenuTokens.radius),
+        modifier = Modifier.border(1.dp, glassMenuBorderColor(), RoundedCornerShape(GlassMenuTokens.radius)),
         title = title?.let { { Text(it) } },
         text = {
             LazyColumn {
@@ -261,6 +269,7 @@ fun <T> SelectListDialog(
                 Text(stringResource(R.string.action_cancel))
             }
         },
-        containerColor = glassStrongSurfaceColor()
+        containerColor = glassMenuSurfaceColor(),
+        tonalElevation = 0.dp
     )
 }

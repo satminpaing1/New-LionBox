@@ -52,7 +52,11 @@ internal fun RuntimeStats(ui: MainUiState, selected: ServerRowUiModel?) {
         else -> R.string.runtime_unavailable
     })
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        GlassCard(modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, tint = GlassTints.peach) {
+        GlassCard(
+            modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
+            tint = GlassTints.mist,
+            tintAlpha = 0.65f
+        ) {
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(stringResource(R.string.runtime_exit_ip_label), fontSize = 14.sp, color = glassTextLabel())
                 when {
