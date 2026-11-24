@@ -19,7 +19,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -75,15 +74,13 @@ private fun PowerButton(isRunning: Boolean, onClick: () -> Unit) {
     val fillColor = if (isRunning) KeyConsoleTokens.accent else MaterialTheme.colorScheme.surface
     val symbolColor = if (isRunning) Color(0xFF14100A) else MaterialTheme.colorScheme.onSurfaceVariant
 
-    val interactionSource = remember { MutableInteractionSource() }
-
     Box(
         modifier = Modifier
             .size(96.dp)
             .background(fillColor, CircleShape)
             .border(width = 4.dp, color = ringColor, shape = CircleShape)
             .clickable(
-                interactionSource = interactionSource,
+                interactionSource = MutableInteractionSource(),
                 indication = null,
                 onClick = onClick
             ),
