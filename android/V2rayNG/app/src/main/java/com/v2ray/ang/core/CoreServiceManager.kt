@@ -12,6 +12,7 @@ import android.os.ParcelFileDescriptor
 import android.system.OsConstants
 import androidx.core.content.ContextCompat
 import com.v2ray.ang.AppConfig
+import com.v2ray.ang.R
 import com.v2ray.ang.contracts.IDialerService
 import com.v2ray.ang.contracts.ServiceControl
 import com.v2ray.ang.dto.ConnectionTestResult
@@ -48,6 +49,16 @@ import libv2ray.CoreController
 import libv2ray.ProcessFinder
 import java.lang.ref.SoftReference
 import java.net.InetSocketAddress
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
+
+/** Upper bound for the native start call; the core is up in well under a second in practice. */
+private const val CORE_START_TIMEOUT_MS = 30_000L
+
+/** Upper bound for the native stop call, so a stuck core cannot block the caller forever. */
+private const val CORE_STOP_TIMEOUT_MS = 10_000L
 
 object CoreServiceManager {
 
@@ -137,8 +148,49 @@ object CoreServiceManager {
     }
     private val connectionTestScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    /**
+     * Every start, stop and reload of the native core runs exclusively through this gate, so a
+     * rapid Connect/Disconnect can never hold two Xray instances open or start one while the
+     * previous one still owns the local port.
+     */
+    private val coreLifecycle = CoreLifecycleGate()
+
+    /**
+     * Single worker for native start/stop. Even if a caller bypassed the gate, the two native calls
+     * can never overlap, and the caller waits (bounded) until the core has really exited.
+     */
+    private val coreWorker = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "lionbox-core-lifecycle").apply { isDaemon = true }
+    }
+
     @Volatile
     private var isReloading = false
+
+    private fun startNativeCore(config: String, tunFd: Int) {
+        val task = coreWorker.submit { coreController.startLoop(config, tunFd) }
+        try {
+            task.get(CORE_START_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+        } catch (e: ExecutionException) {
+            throw e.cause as? Exception ?: e
+        } catch (e: TimeoutException) {
+            throw IllegalStateException("Core start timed out after ${CORE_START_TIMEOUT_MS}ms")
+        }
+    }
+
+    /**
+     * Waits until the native loop has exited, so its sockets and the local inbound port are
+     * released before the caller returns. Bounded, so a stuck core cannot hang the caller.
+     */
+    private fun stopNativeCore() {
+        val task = coreWorker.submit { coreController.stopLoop() }
+        try {
+            task.get(CORE_STOP_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+        } catch (e: TimeoutException) {
+            LogUtil.e(AppConfig.TAG, "StartCore-Manager: core stop timed out after ${CORE_STOP_TIMEOUT_MS}ms")
+        } catch (e: Exception) {
+            LogUtil.e(AppConfig.TAG, "StartCore-Manager: Failed to stop V2Ray loop", e.cause ?: e)
+        }
+    }
 
     /** Tun descriptor the core was started with, null in the proxy only and root run modes. */
     private var currentVpnInterface: ParcelFileDescriptor? = null
@@ -172,28 +224,37 @@ object CoreServiceManager {
      * Starts the V2Ray core service.
      */
     fun startCoreLoop(vpnInterface: ParcelFileDescriptor?): Boolean {
-        if (isRunning()) {
-            LogUtil.w(AppConfig.TAG, "StartCore-Manager: Core already running")
-            return false
-        }
+        return coreLifecycle.runExclusive {
+            if (isRunning()) {
+                LogUtil.w(AppConfig.TAG, "StartCore-Manager: Core already running")
+                return@runExclusive false
+            }
 
-        val service = getService()
-        if (service == null) {
-            LogUtil.e(AppConfig.TAG, "StartCore-Manager: Service is null")
-            return false
-        }
+            val service = getService()
+            if (service == null) {
+                LogUtil.e(AppConfig.TAG, "StartCore-Manager: Service is null")
+                return@runExclusive false
+            }
 
-        try {
-            doStartCoreLoop(service, vpnInterface)
-            SocketProtector.protector = { socket -> serviceControl?.get()?.vpnProtect(socket) ?: false }
-            return true
-        } catch (e: Exception) {
-            val message = e.message?.takeUnless { it.isBlank() } ?: e.javaClass.simpleName
-            LogUtil.e(AppConfig.TAG, "StartCore-Manager: $message", e)
-            MessageHelper.sendMsg2UI(service, AppConfig.MSG_STATE_START_FAILURE, message)
-            stopCoreLoop()
-            NotificationManager.cancelNotification()
-            return false
+            coreLifecycle.markStarting()
+            try {
+                doStartCoreLoop(service, vpnInterface)
+                SocketProtector.protector = { socket -> serviceControl?.get()?.vpnProtect(socket) ?: false }
+                coreLifecycle.markRunning()
+                true
+            } catch (e: Exception) {
+                val message = e.message?.takeUnless { it.isBlank() } ?: e.javaClass.simpleName
+                // Full technical detail belongs to the Logs tab; the dashboard gets one short line.
+                LogUtil.e(AppConfig.TAG, "StartCore-Manager: $message", e)
+                MessageHelper.sendMsg2UI(
+                    service,
+                    AppConfig.MSG_STATE_START_FAILURE,
+                    service.getString(R.string.toast_core_start_failed),
+                )
+                stopCoreLoopLocked()
+                NotificationManager.cancelNotification()
+                false
+            }
         }
     }
 
@@ -216,7 +277,12 @@ object CoreServiceManager {
         val config = MmkvManager.decodeServerConfig(guid) ?: error("Failed to decode server config")
 
         LogUtil.i(AppConfig.TAG, "StartCore-Manager: Starting core loop for ${config.remarks}")
-        val result = CoreConfigManager.getV2rayConfig(service, guid)
+        if (!isReload) {
+            // A fresh session always gets freshly checked free ports: the previous session's port
+            // may still be held by a dying core or by another proxy app.
+            SettingsManager.prepareRuntimePorts()
+        }
+        var result = CoreConfigManager.getV2rayConfig(service, guid)
         LogUtil.d(AppConfig.TAG, result.content)
         if (!result.status) {
             error(result.errorMessage.ifBlank { "Failed to get V2Ray config" })
@@ -238,7 +304,30 @@ object CoreServiceManager {
         if (dialerAddr.isNotNullEmpty()) {
             CoreNativeManager.reconcileBrowserDialer(dialerAddr)
         }
-        coreController.startLoop(result.content, tunFd)
+
+        var attempt = 0
+        while (true) {
+            try {
+                startNativeCore(result.content, tunFd)
+                break
+            } catch (e: Exception) {
+                val message = e.message?.takeUnless { it.isBlank() } ?: e.javaClass.simpleName
+                if (!CoreStartFailure.shouldRetryWithNewPort(attempt, message)) throw e
+
+                LogUtil.w(
+                    AppConfig.TAG,
+                    "StartCore-Manager: local inbound could not bind, retrying on a fresh port: $message",
+                )
+                SettingsManager.forceFreeRuntimePorts()
+                // tun2socks already reads the SOCKS port, so it has to be re-pointed at the new one.
+                serviceControl?.get()?.refreshTun2Socks()
+                result = CoreConfigManager.getV2rayConfig(service, guid)
+                if (!result.status) {
+                    error(result.errorMessage.ifBlank { "Failed to get V2Ray config" })
+                }
+                attempt++
+            }
+        }
 
         if (!isRunning()) {
             error("Core failed to start")
@@ -276,25 +365,29 @@ object CoreServiceManager {
      * Unregisters broadcast receivers, stops notifications, and shuts down plugins.
      * @return True if the core was stopped successfully, false otherwise.
      */
-    fun stopCoreLoop(): Boolean {
+    fun stopCoreLoop(): Boolean = coreLifecycle.runExclusive { stopCoreLoopLocked() }
+
+    private fun stopCoreLoopLocked(): Boolean {
         stopRuntime()
         connectionTestScope.coroutineContext.cancelChildren()
         SocketProtector.clear()
+
+        coreLifecycle.markStopping()
+        try {
+            if (isRunning()) {
+                stopNativeCore()
+            }
+        } finally {
+            // The next session must allocate again: this port may still be in TIME_WAIT.
+            SettingsManager.releaseRuntimePorts()
+            coreLifecycle.markStopped()
+        }
+
         val service = getService() ?: return false
 
         networkMonitor?.unregister()
         networkMonitor = null
         currentVpnInterface = null
-
-        if (isRunning()) {
-            CoroutineScope(Dispatchers.IO).launch {
-                try {
-                    coreController.stopLoop()
-                } catch (e: Exception) {
-                    LogUtil.e(AppConfig.TAG, "StartCore-Manager: Failed to stop V2Ray loop", e)
-                }
-            }
-        }
 
         // Close existing browser dialer
         CoreNativeManager.reconcileBrowserDialer("")
@@ -344,29 +437,39 @@ object CoreServiceManager {
      * @return True if the core is running again.
      */
     private fun reloadCore(): Boolean {
-        if (isReloading) return false
-        val service = getService() ?: return false
-        if (!isRunning()) return false
+        return coreLifecycle.runExclusive {
+            if (isReloading) return@runExclusive false
+            val service = getService() ?: return@runExclusive false
+            if (!isRunning()) return@runExclusive false
 
-        return try {
-            val tunFd = currentVpnInterface
+            try {
+                val tunFd = currentVpnInterface
 
-            isReloading = true
-            connectionTestScope.coroutineContext.cancelChildren()
-            LogUtil.i(AppConfig.TAG, "StartCore-Manager: Core reload start...")
+                isReloading = true
+                connectionTestScope.coroutineContext.cancelChildren()
+                LogUtil.i(AppConfig.TAG, "StartCore-Manager: Core reload start...")
 
-            coreController.stopLoop()
-            launchCore(service, tunFd, isReload = true)
+                // Wait for the old loop to exit before starting the replacement; the port and the
+                // TUN descriptors must be free first.
+                coreLifecycle.markStopping()
+                stopNativeCore()
+                launchCore(service, tunFd, isReload = true)
+                coreLifecycle.markRunning()
 
-            LogUtil.i(AppConfig.TAG, "StartCore-Manager: Core reload finished")
-            true
-        } catch (e: Exception) {
-            val message = e.message?.takeUnless { it.isBlank() } ?: e.javaClass.simpleName
-            LogUtil.e(AppConfig.TAG, "StartCore-Manager: Failed to reload core: $message", e)
-            MessageHelper.sendMsg2UI(service, AppConfig.MSG_STATE_START_FAILURE, message)
-            false
-        } finally {
-            isReloading = false
+                LogUtil.i(AppConfig.TAG, "StartCore-Manager: Core reload finished")
+                true
+            } catch (e: Exception) {
+                val message = e.message?.takeUnless { it.isBlank() } ?: e.javaClass.simpleName
+                LogUtil.e(AppConfig.TAG, "StartCore-Manager: Failed to reload core: $message", e)
+                MessageHelper.sendMsg2UI(
+                    service,
+                    AppConfig.MSG_STATE_START_FAILURE,
+                    service.getString(R.string.toast_core_start_failed),
+                )
+                false
+            } finally {
+                isReloading = false
+            }
         }
     }
 

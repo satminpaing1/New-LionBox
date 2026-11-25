@@ -17,22 +17,42 @@ import com.v2ray.ang.BuildConfig
 import com.v2ray.ang.contracts.ServiceControl
 import com.v2ray.ang.contracts.Tun2SocksControl
 import com.v2ray.ang.core.CoreServiceManager
+import com.v2ray.ang.core.SessionEpoch
 import com.v2ray.ang.handler.AppLocaleManager
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.NotificationManager
 import com.v2ray.ang.handler.SettingsManager
+import com.v2ray.ang.helper.MessageHelper
 import com.v2ray.ang.root.RootLanSharing
 import com.v2ray.ang.util.LogUtil
 import com.v2ray.ang.util.Utils
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runInterruptible
+import kotlinx.coroutines.withTimeoutOrNull
 import java.lang.ref.SoftReference
 import java.util.concurrent.atomic.AtomicBoolean
+
+/** Upper bound for the revoke teardown; larger than the core stop timeout so it can finish. */
+private const val REVOKE_TEARDOWN_TIMEOUT_MS = 12_000L
 
 @SuppressLint("VpnServicePolicy")
 class CoreVpnService : VpnService(), ServiceControl {
     private lateinit var mInterface: ParcelFileDescriptor
+
+    @Volatile
     private var isRunning = false
     private var tun2SocksService: Tun2SocksControl? = null
     private val isStartingLock = AtomicBoolean(false)
+
+    /** Identifies the current VPN session, so a teardown for an old session cannot stop a new one. */
+    private val sessionEpoch = SessionEpoch()
+
+    /** Owns teardown work that must not run on the main thread. */
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
@@ -42,9 +62,63 @@ class CoreVpnService : VpnService(), ServiceControl {
         CoreServiceManager.serviceControl = SoftReference(this)
     }
 
+    /**
+     * Called when the OS takes this VPN down, typically because another VPN app established its
+     * tunnel over ours. The dashboard must stop showing Connected, and the core, the tun2socks
+     * forwarder and the local ports must be released before the app is started again.
+     */
     override fun onRevoke() {
-        LogUtil.w(AppConfig.TAG, "StartCore-VPN: Permission revoked")
-        stopAllService()
+        LogUtil.w(AppConfig.TAG, "StartCore-VPN: Permission revoked, another VPN took over")
+        MessageHelper.sendMsg2UI(this, AppConfig.MSG_STATE_NOT_RUNNING, "")
+        val revokedEpoch = sessionEpoch.current()
+        val revokedInterface = if (::mInterface.isInitialized) mInterface else null
+        // Android delivers onRevoke on the main thread and stopping the core can take seconds,
+        // so the teardown runs on the service scope. The epoch stops it from touching a session
+        // the user already started again.
+        serviceScope.launch {
+            // stopCoreLoop bounds the native stop itself; runInterruptible lets this timeout
+            // interrupt it, and the epoch stops it from touching a newer session.
+            val finished = withTimeoutOrNull(REVOKE_TEARDOWN_TIMEOUT_MS) {
+                runInterruptible { stopRevokedSession(revokedEpoch, revokedInterface) }
+            }
+            if (finished == null) {
+                LogUtil.e(AppConfig.TAG, "StartCore-VPN: Revoke teardown timed out, closing interface")
+                closeInterfaceQuietly(revokedInterface)
+            }
+        }
+    }
+
+    private fun stopRevokedSession(epoch: Long, revokedInterface: ParcelFileDescriptor?) {
+        if (!sessionEpoch.isCurrent(epoch)) {
+            closeInterfaceQuietly(revokedInterface)
+            return
+        }
+        unlockStart()
+        isRunning = false
+
+        tun2SocksService?.stopTun2Socks()
+        tun2SocksService = null
+        RootLanSharing.stopClientSharing(this)
+
+        // Re-check: a Connect tap between the revoke and this point starts a newer session whose
+        // core and service must survive.
+        if (sessionEpoch.isCurrent(epoch)) {
+            CoreServiceManager.stopCoreLoop()
+        }
+        if (sessionEpoch.isCurrent(epoch)) {
+            NotificationManager.cancelNotification()
+            stopSelf()
+        }
+        closeInterfaceQuietly(revokedInterface)
+    }
+
+    private fun closeInterfaceQuietly(descriptor: ParcelFileDescriptor?) {
+        try {
+            descriptor?.close()
+            LogUtil.i(AppConfig.TAG, "StartCore-VPN: VPN interface closed")
+        } catch (e: Exception) {
+            LogUtil.e(AppConfig.TAG, "StartCore-VPN: Failed to close interface", e)
+        }
     }
 
 //    override fun onLowMemory() {
@@ -56,20 +130,13 @@ class CoreVpnService : VpnService(), ServiceControl {
         super.onDestroy()
         LogUtil.i(AppConfig.TAG, "StartCore-VPN: Service destroyed")
 
-        // Ensure VPN interface is properly closed when the service is destroyed without
-        // going through stopAllService() (e.g. when killed unexpectedly). isRunning is
-        // set to false at the start of stopAllService(), so this guard prevents a double-close.
-        if (isRunning) {
-            try {
-                if (::mInterface.isInitialized) {
-                    mInterface.close()
-                    LogUtil.i(AppConfig.TAG, "StartCore-VPN: VPN interface closed in onDestroy")
-                }
-            } catch (e: Exception) {
-                LogUtil.e(AppConfig.TAG, "StartCore-VPN: Failed to close interface in onDestroy", e)
-            }
+        // Close unconditionally: close() on an already released descriptor is a no-op, and this
+        // still releases the fd when the service is killed without stopAllService().
+        if (::mInterface.isInitialized) {
+            closeInterfaceQuietly(mInterface)
         }
 
+        serviceScope.cancel()
         CoreServiceManager.stopCoreLoop()
         unlockStart()
         NotificationManager.cancelNotification()
@@ -90,6 +157,9 @@ class CoreVpnService : VpnService(), ServiceControl {
         LogUtil.i(AppConfig.TAG, "StartCore-VPN: Service command received, systemVpnStart=$isSystemVpnStart")
         if (!setupVpnService()) {
             unlockStart()
+            // Setup failed (for example the OS refused to replace the active VPN). Return the
+            // dashboard to Not connected instead of leaving it on a spinner.
+            MessageHelper.sendMsg2UI(this, AppConfig.MSG_STATE_NOT_RUNNING, "")
             // Stop service if setup fails to avoid infinite restart loops (START_STICKY)
             stopSelf()
             return START_NOT_STICKY
@@ -133,6 +203,15 @@ class CoreVpnService : VpnService(), ServiceControl {
         return super<VpnService>.setUnderlyingNetworks(networks)
     }
 
+    override fun refreshTun2Socks(): Boolean {
+        // tun2socks forwards to the local SOCKS port it was built with, so a moved port needs a
+        // restart of the forwarder, not only of the core.
+        tun2SocksService?.stopTun2Socks()
+        tun2SocksService = null
+        runTun2socks()
+        return true
+    }
+
     override fun attachBaseContext(newBase: Context?) {
         val context = newBase?.let(AppLocaleManager::localizedContext)
         super.attachBaseContext(context)
@@ -149,10 +228,17 @@ class CoreVpnService : VpnService(), ServiceControl {
             return false
         }
 
+        // Establish the OS tunnel first. Android allows a single VPN per user, so establish()
+        // revokes and disconnects any other VPN app before this app binds anything.
         if (configureVpnService() != true) {
             LogUtil.e(AppConfig.TAG, "StartCore-VPN: Configuration failed")
             return false
         }
+
+        // Ports are chosen after the takeover: a revoked app can still hold its local inbound
+        // (classically 10808) for a moment, and this session only uses a port the OS reports free.
+        // The same pair goes to tun2socks below and to the Xray inbounds that start after it.
+        SettingsManager.prepareRuntimePorts()
 
         runTun2socks()
         return true
@@ -187,6 +273,9 @@ class CoreVpnService : VpnService(), ServiceControl {
         try {
             mInterface = builder.establish()!!
             isRunning = true
+            // A new session exists; a revoke teardown launched for the previous one must not
+            // stop this core or this service.
+            sessionEpoch.begin()
             return true
         } catch (e: Exception) {
             LogUtil.e(AppConfig.TAG, "Failed to establish VPN interface", e)

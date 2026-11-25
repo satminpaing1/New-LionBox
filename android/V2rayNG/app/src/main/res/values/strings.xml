@@ -55,6 +55,7 @@
     <string name="toast_services_stop">Stopping service</string>
     <string name="toast_services_success">Service started successfully</string>
     <string name="toast_services_failure">Failed to start service</string>
+    <string name="toast_core_start_failed">VPN engine could not start. Please try again.</string>
 
     <!--ServerActivity-->
     <string name="title_server">Config</string>
@@ -289,7 +290,7 @@
     <string name="summary_pref_socks_enable_udp">SOCKS5 authentication is not fully secure when using UDP.</string>
     <string name="summary_pref_socks_port">Local proxy port</string>
     <string name="title_pref_dynamic_socks_port">Enable dynamic local proxy port</string>
-    <string name="summary_pref_dynamic_socks_port">Use a random local proxy port for each inbound</string>
+    <string name="summary_pref_dynamic_socks_port">Pick a free local proxy port for each connection instead of a fixed one</string>
     <string name="title_pref_socks_username">Local proxy username (optional)</string>
     <string name="summary_pref_socks_username">Username</string>
     <string name="title_pref_socks_password">Local proxy password (optional)</string>

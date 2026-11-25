@@ -22,10 +22,12 @@ import com.v2ray.ang.handler.AppUpdateInstaller
 import com.v2ray.ang.handler.ApkInstallAttempt
 import com.v2ray.ang.handler.ApkInstallState
 import com.v2ray.ang.handler.MmkvManager
+import com.v2ray.ang.handler.SettingsManager
 import com.v2ray.ang.handler.SubscriptionInfoParser
 import com.v2ray.ang.ui.base.BaseViewModel
 import com.v2ray.ang.util.LogUtil
 import com.v2ray.ang.util.LogcatBuffer
+import com.v2ray.ang.util.Socks5Endpoint
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
@@ -479,6 +481,9 @@ class MainViewModel(
             is MainAction.Search -> filterConfig(action.query)
             is MainAction.ImportBatchConfig -> importBatchConfig(action.configText)
             MainAction.LocateHandled -> consumeLocateTarget()
+            MainAction.RetryTunnelCheck -> startTunnelCheck()
+            // Picking and connecting the fastest server needs the activity's service plumbing.
+            MainAction.ReconnectFastestServer -> Unit
             is MainAction.ShareQRCode -> {
                 val bitmap = dataSource.share2QRCode(action.guid)
                 _uiState.update { it.copy(shareQRCodeBitmap = bitmap) }
@@ -966,6 +971,8 @@ class MainViewModel(
 
     fun updateSelectedGuid(guid: String) {
         if (uiState.value.autoSelectFastest) setAutoSelectFastest(false)
+        // A different server gets a fresh verdict; the stale warning must disappear immediately.
+        if (uiState.value.selectedGuid != guid) resetTunnelReachability()
         dataSource.setSelectServer(guid)
         _uiState.update { it.copy(selectedGuid = guid) }
     }
@@ -1214,6 +1221,7 @@ class MainViewModel(
 
     // ---------- Running state ----------
     private fun updateRunningState(running: Boolean, clearTestingText: Boolean = true) {
+        val wasRunning = uiState.value.isRunning
         if (!running || clearTestingText) testRequests.invalidateCurrent()
         _uiState.update { state ->
             state.copy(
@@ -1224,6 +1232,77 @@ class MainViewModel(
                 else if (running) MainStatus.Connected else MainStatus.Disconnected
             )
         }
+        // Probe real reachability once per transition into Connected; a repeated running event must
+        // not restart the check (the user may be retrying) or flicker the banner.
+        when {
+            running && !wasRunning -> startTunnelCheck()
+            !running && wasRunning -> resetTunnelReachability()
+        }
+    }
+
+    // ---------- Post-connect reachability ----------
+    private var tunnelCheckJob: Job? = null
+    private val tunnelChecker by lazy {
+        TunnelReachabilityChecker(endpoint = {
+            val port = SettingsManager.getSocksPort()
+            if (port <= 0) {
+                null
+            } else {
+                Socks5Endpoint(
+                    host = AppConfig.LOOPBACK,
+                    port = port,
+                    username = SettingsManager.getSocksUsername(),
+                    password = SettingsManager.getSocksPassword(),
+                )
+            }
+        })
+    }
+
+    /** Runs a real-traffic check through the tunnel: on connect, and on the warning's Retry. */
+    private fun startTunnelCheck() {
+        tunnelCheckJob?.cancel()
+        if (!uiState.value.isRunning) return
+        // A retry keeps the published verdict on screen until it is overturned, so the banner does
+        // not blink away for the length of the check.
+        _uiState.update { state ->
+            state.copy(
+                tunnelReachability = if (state.tunnelReachability == TunnelReachability.Blocked) {
+                    TunnelReachability.Blocked
+                } else {
+                    TunnelReachability.Checking
+                }
+            )
+        }
+        tunnelCheckJob = viewModelScope.launch {
+            val reachable = withContext(Dispatchers.IO) {
+                try {
+                    tunnelChecker.reachable()
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    LogUtil.w(AppConfig.TAG, "Tunnel reachability check failed", error)
+                    false
+                }
+            }
+            if (!uiState.value.isRunning) return@launch
+            _uiState.update {
+                it.copy(
+                    tunnelReachability = if (reachable) TunnelReachability.Reachable
+                    else TunnelReachability.Blocked
+                )
+            }
+            if (!reachable) {
+                LogUtil.w(AppConfig.TAG, "Connected, but no traffic could pass through the tunnel")
+            }
+        }
+    }
+
+    private fun resetTunnelReachability() {
+        tunnelCheckJob?.cancel()
+        tunnelCheckJob = null
+        if (uiState.value.tunnelReachability != TunnelReachability.Unknown) {
+            _uiState.update { it.copy(tunnelReachability = TunnelReachability.Unknown) }
+        }
     }
 
     override fun onCleared() {
@@ -1232,6 +1311,7 @@ class MainViewModel(
         selectedGroupLoadJob?.cancel()
         reloadJob?.cancel()
         filterJob?.cancel()
+        tunnelCheckJob?.cancel()
         cancelAllPing()
         dataSource.close()
         super.onCleared()

@@ -53,6 +53,11 @@ import com.v2ray.ang.ui.compose.GlassDropdownMenuItem
 import com.v2ray.ang.ui.compose.GlassMenuTokens
 import com.v2ray.ang.ui.compose.GlassTokens
 import com.v2ray.ang.ui.compose.GlassTints
+import com.v2ray.ang.ui.compose.GlassWarningTokens
+import com.v2ray.ang.ui.compose.glassWarningActionFillColor
+import com.v2ray.ang.ui.compose.glassWarningActionInkColor
+import com.v2ray.ang.ui.compose.glassWarningBodyColor
+import com.v2ray.ang.ui.compose.glassWarningTitleColor
 import com.v2ray.ang.ui.compose.glassMenuBorderColor
 import com.v2ray.ang.ui.compose.glassMenuSurfaceColor
 import com.v2ray.ang.ui.compose.LocalDarkTheme
@@ -247,6 +252,7 @@ internal fun LionBoxConsole(
                 contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                val noInternet = noInternetWarning(uiState.tunnelReachability, uiState.isRunning)
                 if (isLoading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
                 if (tab == LionBoxTab.Dashboard) {
                     item {
@@ -260,11 +266,21 @@ internal fun LionBoxConsole(
                             }
                             Spacer(Modifier.height(10.dp))
                             Text(
-                                if (uiState.isRunning) stringResource(R.string.lion_connected) else displayText,
+                                if (uiState.isRunning) {
+                                    stringResource(
+                                        if (noInternet) R.string.lion_connected_no_internet else R.string.lion_connected
+                                    )
+                                } else {
+                                    displayText
+                                },
                                 modifier = Modifier.fillMaxWidth(),
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (uiState.isRunning) GlassTokens.connectedText else glassTextPrimary(),
+                                color = when {
+                                    noInternet -> glassWarningTitleColor()
+                                    uiState.isRunning -> GlassTokens.connectedText
+                                    else -> glassTextPrimary()
+                                },
                                 textAlign = TextAlign.Center,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis
@@ -284,6 +300,20 @@ internal fun LionBoxConsole(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                    if (noInternet) {
+                        item(key = "no_internet") {
+                            NoInternetWarning(
+                                onSwitchServer = {
+                                    if (uiState.autoSelectFastest) {
+                                        onAction(MainAction.ReconnectFastestServer)
+                                    } else {
+                                        openServersTab()
+                                    }
+                                },
+                                onRetry = { onAction(MainAction.RetryTunnelCheck) }
                             )
                         }
                     }
@@ -379,6 +409,63 @@ internal fun LionBoxConsole(
             confirmButton = { TextButton(enabled = importText.isNotBlank() && !isLoading, onClick = { onAction(MainAction.ImportBatchConfig(importText.trim())); importText = ""; importVisible = false }) { Text(stringResource(R.string.lion_import)) } },
             dismissButton = { TextButton(onClick = { importVisible = false }, enabled = !isLoading) { Text(stringResource(android.R.string.cancel)) } }
         )
+    }
+}
+
+@Composable
+private fun NoInternetWarning(onSwitchServer: () -> Unit, onRetry: () -> Unit) {
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(GlassWarningTokens.cornerRadius),
+        tint = GlassWarningTokens.tint,
+        tintAlpha = GlassWarningTokens.lightAlpha
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_warning_amber_24dp),
+                contentDescription = stringResource(R.string.lion_no_internet_warning),
+                tint = glassWarningTitleColor(),
+                modifier = Modifier.padding(top = 1.dp).size(22.dp)
+            )
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    stringResource(R.string.lion_no_internet_title),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = glassWarningTitleColor()
+                )
+                Text(
+                    stringResource(R.string.lion_no_internet_body),
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp,
+                    color = glassWarningBodyColor()
+                )
+                Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    WarningPill(stringResource(R.string.lion_no_internet_switch), onSwitchServer)
+                    WarningPill(stringResource(R.string.lion_no_internet_retry), onRetry)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WarningPill(label: String, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .heightIn(min = 44.dp)
+            .clip(CircleShape)
+            .background(glassWarningActionFillColor())
+            .border(1.dp, glassBorderColor(), CircleShape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 7.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = glassWarningActionInkColor())
     }
 }
 

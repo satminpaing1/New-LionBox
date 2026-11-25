@@ -44,4 +44,12 @@ interface ServiceControl {
      * @return True if the networks were accepted.
      */
     fun setUnderlyingNetworks(networks: Array<Network>?): Boolean = false
+
+    /**
+     * Restarts tun2socks so it forwards to the current local proxy port.
+     * Called when the local inbound had to move to a freshly allocated port.
+     *
+     * @return True if a tun2socks forwarder was restarted.
+     */
+    fun refreshTun2Socks(): Boolean = false
 }

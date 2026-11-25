@@ -77,6 +77,23 @@ object GlassTints {
 }
 
 /**
+ * Advisory (non-blocking) warning surface: the connected-but-no-internet banner. A rose frost at
+ * 80% keeps the dashboard readable underneath; ink colours are picked per theme for contrast.
+ */
+object GlassWarningTokens {
+    val tint = GlassMenuTokens.destructiveTint
+    val lightAlpha = 0.80f
+    val titleLight = GlassMenuTokens.destructiveText
+    val titleDark = Color(0xFFFCA5A5)
+    val bodyLight = Color(0xFF7F1D1D)
+    val bodyDark = Color(0xFFFECACA)
+    val actionFillLight = Color(0xFFFFE4E6)
+    val actionFillDark = Color(0xFF7F1D1D)
+    val actionInkDark = Color(0xFFFEE2E2)
+    val cornerRadius = 18.dp
+}
+
+/**
  * Menu and dialog glass. Popups get their own cool-tinted frost instead of a plain white box,
  * with a white hairline and zero elevation so no dark hardware shadow leaks through.
  */
@@ -168,6 +185,23 @@ fun glassDialogSectionLabelColor(): Color =
 @Composable
 fun glassDialogSubtitleColor(): Color =
     if (LocalDarkTheme.current) GlassMenuTokens.darkSubtitle else GlassMenuTokens.subtitle
+
+@Composable
+fun glassWarningTitleColor(): Color =
+    if (LocalDarkTheme.current) GlassWarningTokens.titleDark else GlassWarningTokens.titleLight
+
+@Composable
+fun glassWarningBodyColor(): Color =
+    if (LocalDarkTheme.current) GlassWarningTokens.bodyDark else GlassWarningTokens.bodyLight
+
+@Composable
+fun glassWarningActionFillColor(): Color =
+    if (LocalDarkTheme.current) GlassWarningTokens.actionFillDark else GlassWarningTokens.actionFillLight
+
+@Composable
+fun glassWarningActionInkColor(): Color =
+    if (LocalDarkTheme.current) GlassWarningTokens.actionInkDark else GlassMenuTokens.destructiveText
+
 
 /**
  * Material elevation is always zero on glass: a hardware shadow bleeds through a translucent fill

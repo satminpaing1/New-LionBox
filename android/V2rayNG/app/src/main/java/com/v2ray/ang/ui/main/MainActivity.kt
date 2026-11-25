@@ -118,6 +118,11 @@ class MainActivity : HelperBaseComponentActivity() {
                     MainAction.ImportConfigLocal -> importConfigLocal()
                     is MainAction.ImportManually -> importManually(action.type)
                     MainAction.RestartService -> LauncherManager.restartServiceOrStart(this, ::requestServiceStart)
+                    MainAction.ReconnectFastestServer -> {
+                        mainViewModel.connectWithFastestServer {
+                            LauncherManager.restartServiceOrStart(this, ::requestServiceStart)
+                        }
+                    }
                     MainAction.LocateSelectedServer -> mainViewModel.triggerLocateSelectedServer()
                     is MainAction.SelectServer -> setSelectServer(action.guid)
                     is MainAction.EditServer -> editServer(action.guid, action.profile)

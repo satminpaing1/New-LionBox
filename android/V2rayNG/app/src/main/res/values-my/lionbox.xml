@@ -23,4 +23,10 @@
     <string name="lion_logs_empty">မှတ်တမ်း မရှိသေးပါ။ ချိတ်ဆက်မှုမှတ်တမ်းများ ဒီနေရာမှာ ပေါ်လာပါမည်။</string>
     <string name="lion_delete_server_title">ဆာဗာ ဖျက်မည်လား။</string>
     <string name="lion_delete_server_message">\'%1$s\' ကို ဖျက်ရန် သေချာပါသလား။\n\nဒီဖုန်းထဲမှာ သိမ်းထားတဲ့ ဆာဗာကို ဖယ်ရှားပါမည်။</string>
+    <string name="lion_connected_no_internet">ချိတ်ဆက်ထားသည် (အင်တာနက်မရ)</string>
+    <string name="lion_no_internet_warning">သတိပေးချက်</string>
+    <string name="lion_no_internet_title">အင်တာနက်လိုင်း မထွက်ပါ</string>
+    <string name="lion_no_internet_body">လက်ရှိဆာဗာကို Network မှ ပိတ်ထားနိုင်ပါသည်။ တခြားဆာဗာ ပြောင်းချိတ်ကြည့်ပါ။</string>
+    <string name="lion_no_internet_switch">ဆာဗာပြောင်း</string>
+    <string name="lion_no_internet_retry">ပြန်စမ်း</string>
 </resources>

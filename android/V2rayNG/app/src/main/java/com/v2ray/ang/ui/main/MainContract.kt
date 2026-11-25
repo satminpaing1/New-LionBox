@@ -28,7 +28,9 @@ data class MainUiState(
     val confirmRemove: Boolean = false,
     val doubleColumnDisplay: Boolean = false,
     val autoSelectFastest: Boolean = false,
-    val shareQRCodeBitmap: android.graphics.Bitmap? = null
+    val shareQRCodeBitmap: android.graphics.Bitmap? = null,
+    /** Reachability of the running tunnel; [TunnelReachability.Blocked] raises the dashboard warning. */
+    val tunnelReachability: TunnelReachability = TunnelReachability.Unknown
 )
 
 /**
@@ -78,4 +80,11 @@ sealed interface MainAction {
     data class ImportBatchConfig(val configText: String) : MainAction
 
     data object LocateHandled : MainAction
+
+    /** Re-runs the post-connect reachability check right away (warning banner Retry). */
+
+    data object RetryTunnelCheck : MainAction
+
+    /** Warning banner "Switch Server" while Auto (fastest) is on: pick and connect the fastest. */
+    data object ReconnectFastestServer : MainAction
 }

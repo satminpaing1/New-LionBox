@@ -25,6 +25,7 @@ import com.v2ray.ang.handler.MmkvManager.decodeSubsList
 import com.v2ray.ang.handler.MmkvManager.decodeSubscription
 import com.v2ray.ang.handler.MmkvManager.encodeSubscription
 import com.v2ray.ang.handler.MmkvManager.removeSubscription
+import com.v2ray.ang.util.FreePortAllocator
 import com.v2ray.ang.util.JsonUtil
 import com.v2ray.ang.util.LogUtil
 import com.v2ray.ang.util.Utils
@@ -34,8 +35,13 @@ import kotlin.random.Random
 
 object SettingsManager {
 
+    /** SOCKS port of the running session, shared with the UI process through settings storage. */
     @Volatile
     private var runtimeSocksPort: Int? = null
+
+    /** SOCKS port to HTTP port of the running session, or null before a session allocated them. */
+    @Volatile
+    private var runtimePorts: Pair<Int, Int>? = null
 
     fun initApp(context: Context) {
         ensureDefaultSettings()
@@ -254,25 +260,123 @@ object SettingsManager {
 
     /**
      * Get the SOCKS port.
+     *
+     * The port of the running session wins, so every component (Xray inbound, tun2socks, latency
+     * probes, speed test) talks to the port that was actually allocated. Only when no session port
+     * exists yet does this fall back to the user's fixed port, or to a freshly allocated one in
+     * dynamic mode.
+     *
      * @return The SOCKS port.
      */
     fun getSocksPort(): Int {
-        val port =
-            if (IsDynamicSocksPort()) {
-                runtimeSocksPort ?: refreshRuntimeSocksPort()
-            } else {
-                Utils.parseInt(MmkvManager.decodeSettingsString(AppConfig.PREF_SOCKS_PORT), AppConfig.PORT_SOCKS.toInt())
-            }
-        return port ?: AppConfig.PORT_SOCKS.toInt()
+        sessionPorts()?.let { return it.first }
+        return allocateSessionPorts(fixedPortPair()).first
+    }
+
+    /**
+     * Makes sure a session port pair exists before anything reads it.
+     *
+     * Called by the VPN setup before tun2socks starts and again right before the core starts, so
+     * both see the same ports: an existing pair is kept, a new one is allocated only when the
+     * previous session released it.
+     *
+     * @return The SOCKS port of the session pair.
+     */
+    @Synchronized
+    fun prepareRuntimePorts(): Int {
+        sessionPorts()?.let { current ->
+            if (portsFree(current)) return current.first
+            LogUtil.w(
+                AppConfig.TAG,
+                "SettingsManager: session ports ${current.first}/${current.second} are no longer free, allocating again",
+            )
+        }
+        return allocateSessionPorts(fixedPortPair()).first
+    }
+
+    /**
+     * Replaces the session ports with a fresh free pair, also when fixed ports are configured.
+     * Used when the native core reports that the local inbound could not bind.
+     *
+     * @return The SOCKS port of the new pair.
+     */
+    @Synchronized
+    fun forceFreeRuntimePorts(): Int {
+        return allocateSessionPorts().first
+    }
+
+    /**
+     * Drops the session ports so the next session starts from a clean allocation.
+     */
+    @Synchronized
+    fun releaseRuntimePorts() {
+        runtimePorts = null
+        runtimeSocksPort = null
+        // 0 means "no session ports"; keeps the stored type numeric for decodeSettingsInt.
+        MmkvManager.encodeSettings(AppConfig.PREF_RUNTIME_SOCKS_PORT, 0)
+        MmkvManager.encodeSettings(AppConfig.PREF_RUNTIME_HTTP_PORT, 0)
     }
 
     @Synchronized
     fun refreshRuntimeSocksPort(): Int? {
-        if (IsDynamicSocksPort()) {
-            runtimeSocksPort = generateRandomSocksPort()
-            return runtimeSocksPort
+        if (!IsDynamicSocksPort()) return null
+        return allocateSessionPorts().first
+    }
+
+    /** True while both ports of [ports] can still be bound; an Xray session uses one port only. */
+    private fun portsFree(ports: Pair<Int, Int>): Boolean {
+        if (ports.first <= 0 || ports.second <= 0) return false
+        if (!FreePortAllocator.isPortFree(ports.first)) return false
+        return ports.second == ports.first || FreePortAllocator.isPortFree(ports.second)
+    }
+
+    /**
+     * The pair the user pinned in settings, or null when dynamic ports are on.
+     * Xray exposes both protocols from one inbound, so its HTTP port equals the SOCKS port.
+     */
+    private fun fixedPortPair(): Pair<Int, Int>? {
+        if (IsDynamicSocksPort()) return null
+        val socks = Utils.parseInt(
+            MmkvManager.decodeSettingsString(AppConfig.PREF_SOCKS_PORT),
+            AppConfig.PORT_SOCKS.toInt(),
+        )
+        return socks to (socks + if (Utils.isXray()) 0 else 1)
+    }
+
+    /**
+     * @return SOCKS port to HTTP port of the current session, or null when none is allocated.
+     */
+    @Synchronized
+    private fun sessionPorts(): Pair<Int, Int>? {
+        runtimePorts?.let { return it }
+        val socks = MmkvManager.decodeSettingsInt(AppConfig.PREF_RUNTIME_SOCKS_PORT, 0)
+        val http = MmkvManager.decodeSettingsInt(AppConfig.PREF_RUNTIME_HTTP_PORT, 0)
+        if (socks <= 0 || http <= 0) return null
+        return Pair(socks, http).also {
+            runtimePorts = it
+            runtimeSocksPort = it.first
         }
-        return null
+    }
+
+    @Synchronized
+    private fun allocateSessionPorts(preferred: Pair<Int, Int>? = null): Pair<Int, Int> {
+        val (socks, http) = try {
+            SessionPortPolicy.resolve(
+                preferredSocks = preferred?.first,
+                preferredHttp = preferred?.second,
+                isFree = FreePortAllocator::isPortFree,
+                allocateFreePair = { FreePortAllocator().allocatePair() },
+            )
+        } catch (e: Exception) {
+            // Falling back keeps the core startable even if the OS refuses an ephemeral bind.
+            LogUtil.w(AppConfig.TAG, "SettingsManager: free port allocation failed", e)
+            Pair(generateRandomSocksPort(), generateRandomSocksPort() + 1)
+        }
+        runtimePorts = Pair(socks, http)
+        runtimeSocksPort = socks
+        MmkvManager.encodeSettings(AppConfig.PREF_RUNTIME_SOCKS_PORT, socks)
+        MmkvManager.encodeSettings(AppConfig.PREF_RUNTIME_HTTP_PORT, http)
+        return Pair(socks, http)
     }
 
     fun getSocksUsername(): String? {
@@ -288,11 +392,12 @@ object SettingsManager {
      * @return The HTTP port.
      */
     fun getHttpPort(): Int {
-        return getSocksPort() + if (Utils.isXray()) 0 else 1
+        sessionPorts()?.let { return it.second }
+        return allocateSessionPorts(fixedPortPair()).second
     }
 
     private fun IsDynamicSocksPort(): Boolean {
-        return MmkvManager.decodeSettingsBool(AppConfig.PREF_DYNAMIC_SOCKS_PORT, false)
+        return MmkvManager.decodeSettingsBool(AppConfig.PREF_DYNAMIC_SOCKS_PORT, true)
     }
 
     private fun generateRandomSocksPort(): Int {

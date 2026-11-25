@@ -36,4 +36,10 @@
     <string name="lion_update_subscription">Update subscription</string>
     <string name="lion_delete_server_title">Delete Server?</string>
     <string name="lion_delete_server_message">Are you sure you want to delete \'%1$s\'?\n\nThis removes the saved server from this device.</string>
+    <string name="lion_connected_no_internet">Connected (No Internet)</string>
+    <string name="lion_no_internet_warning">Warning</string>
+    <string name="lion_no_internet_title">No Internet Connection</string>
+    <string name="lion_no_internet_body">This server may be blocked by your network. Try switching to another server.</string>
+    <string name="lion_no_internet_switch">Switch Server</string>
+    <string name="lion_no_internet_retry">Retry</string>
 </resources>
