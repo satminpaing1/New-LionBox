@@ -41,6 +41,10 @@ internal object RealPingExecutionLimiter {
  * Worker that runs a batch of real-ping tests independently.
  * Each batch owns its own CoroutineScope/dispatcher and can be cancelled separately.
  *
+ * Every server is measured with a real delay: an HTTP request to the configured test URL is sent
+ * through that server's own outbound, so a key whose tunnel, TLS/WS handshake or remote worker is
+ * dead reports a timeout instead of a TCP-connect time.
+ *
  * @param concurrency probes in flight at once; 0 uses the user's real-ping setting.
  * @param probeTimeoutMillis per-server budget; 0 keeps the legacy unbounded probe. A positive
  * budget also trims the fallback URL chain to the primary URL so one server cannot burn the
@@ -49,14 +53,13 @@ internal object RealPingExecutionLimiter {
 class RealPingWorkerService(
     private val context: Context,
     private val guids: List<String>,
-    private val onlyTcp: Boolean = false,
     private val concurrency: Int = 0,
     private val probeTimeoutMillis: Long = 0L,
     private val onEvent: (RealPingEvent) -> Unit = {}
 ) {
     private val job = SupervisorJob()
     private val parallel = if (concurrency > 0) concurrency else SettingsManager.getRealPingConcurrency()
-    private val dispatcher = Executors.newFixedThreadPool(if (onlyTcp) parallel * 2 else parallel).asCoroutineDispatcher()
+    private val dispatcher = Executors.newFixedThreadPool(parallel).asCoroutineDispatcher()
     private val scope = CoroutineScope(job + dispatcher + CoroutineName("RealPingBatchWorker"))
 
     fun start() {
@@ -77,7 +80,7 @@ class RealPingWorkerService(
                             onEvent(RealPingEvent.Progress("$left / $total"))
                         }
                     },
-                    probe = { guid -> if (onlyTcp) startTcping(guid) else startRealPing(guid) },
+                    probe = { guid -> startRealPing(guid) },
                 )
                 if (scope.isActive) {
                     onEvent(RealPingEvent.Finish("0"))
@@ -131,31 +134,11 @@ class RealPingWorkerService(
                 SettingsManager.getDelayTestUrl(),
                 SettingsManager.getDelayTestUrl(true),
                 maxUrls,
+                probeTimeoutMillis,
             ) { url ->
                 if (!scope.isActive) throw CancellationException()
                 CoreNativeManager.measureOutboundDelay(configResult.content, url)
             }
         }
-    }
-
-    private fun startTcping(guid: String): Long {
-        val retFailure = -1L
-
-        val config = MmkvManager.decodeServerConfig(guid) ?: return retFailure
-        if (!config.configType.isComplexType()
-            && config.configType != EConfigType.HYSTERIA2
-            && config.configType != EConfigType.WIREGUARD
-            && config.alpn?.split(',')?.all { it.trim().startsWith("h3") } != true
-            && config.server.isNotNullEmpty()
-            && config.serverPort?.toIntOrNull() != null
-        ) {
-            val url = config.server.orEmpty()
-            val port = config.serverPort.orEmpty().toInt()
-            val tcpTime = SpeedtestManager.socketConnectTime(url, port, 1000)
-
-            return tcpTime
-        }
-
-        return retFailure
     }
 }

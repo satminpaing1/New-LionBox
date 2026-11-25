@@ -64,8 +64,10 @@ class AutoConnectTest {
     @Test
     fun fastEnoughThresholdStopsEarly() {
         assertEquals(250L, AUTO_CONNECT_FAST_ENOUGH_MS)
-        assertEquals(1_500L, AUTO_CONNECT_PROBE_TIMEOUT_MS)
-        assertEquals(2_000L, AUTO_CONNECT_WAIT_WINDOW_MS)
+        // The Auto probe is a real URL test through each server's outbound, so it gets the
+        // same 3 s budget as the manual test instead of a TCP-connect-sized one.
+        assertEquals(3_000L, AUTO_CONNECT_PROBE_TIMEOUT_MS)
+        assertEquals(3_000L, AUTO_CONNECT_WAIT_WINDOW_MS)
         assertEquals(15, AUTO_CONNECT_CONCURRENCY)
         assertEquals(10 * 60 * 1000L, AUTO_CONNECT_FAST_CACHE_MS)
     }

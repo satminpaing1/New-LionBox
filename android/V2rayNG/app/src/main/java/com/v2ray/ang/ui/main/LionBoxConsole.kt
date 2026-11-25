@@ -556,7 +556,7 @@ private fun UpdateCheckCard(mainViewModel: MainViewModel, onAction: (MainAction)
 @Composable
 private fun delayLabel(delay: Long?): String = when {
     delay == null || delay == 0L -> "—"
-    delay < 0 -> stringResource(R.string.connection_test_empty_message)
+    delay < 0 -> stringResource(R.string.server_test_timeout)
     else -> stringResource(R.string.server_test_delay_value, delay)
 }
 
@@ -653,18 +653,26 @@ private fun LionServerCard(
                     )
                     Surface(
                         shape = RoundedCornerShape(999.dp),
-                        color = if (delay != null && delay > 0) {
-                            if (darkTheme) Color(0x33047857) else GlassTokens.mintBadge
-                        } else if (darkTheme) Color(0x1FFFFFFF) else Color(0xFFEAF0F9)
+                        color = when {
+                            delay != null && delay > 0 ->
+                                if (darkTheme) Color(0x33047857) else GlassTokens.mintBadge
+                            delay != null && delay < 0 ->
+                                if (darkTheme) Color(0x33FEE2E2) else GlassMenuTokens.destructiveTint
+                            else -> if (darkTheme) Color(0x1FFFFFFF) else Color(0xFFEAF0F9)
+                        }
                     ) {
                         Text(
                             delayLabel(delay),
                             Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (delay != null && delay > 0) {
-                                if (darkTheme) Color(0xFF6EE7B7) else GlassTokens.mintBadgeText
-                            } else glassTextSecondary()
+                            color = when {
+                                delay != null && delay > 0 ->
+                                    if (darkTheme) Color(0xFF6EE7B7) else GlassTokens.mintBadgeText
+                                delay != null && delay < 0 ->
+                                    if (darkTheme) Color(0xFFFCA5A5) else GlassMenuTokens.destructiveText
+                                else -> glassTextSecondary()
+                            }
                         )
                     }
                 }

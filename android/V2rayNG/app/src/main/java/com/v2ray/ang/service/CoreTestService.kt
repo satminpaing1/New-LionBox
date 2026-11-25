@@ -122,7 +122,6 @@ class CoreTestService : Service() {
             worker = RealPingWorkerService(
                 context = this,
                 guids = guidsList,
-                onlyTcp = message.onlyTcp,
                 concurrency = message.concurrency,
                 probeTimeoutMillis = message.probeTimeoutMillis,
                 onEvent = { event ->

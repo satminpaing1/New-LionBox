@@ -3,6 +3,7 @@ package com.v2ray.ang
 import com.v2ray.ang.util.LatencyProbe
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.io.IOException
 import java.util.concurrent.CancellationException
@@ -49,5 +50,22 @@ class LatencyProbeTest {
             LatencyProbe.measure("primary", "fallback") { calls.add(it); throw CancellationException() }
         }
         assertEquals(listOf("primary"), calls)
+    }
+
+    @Test
+    fun `budgeted probe returns the real delay`() {
+        assertEquals(180L, LatencyProbe.measure("primary", "fallback", 1, 3_000L) { 180L })
+    }
+
+    @Test
+    fun `budgeted probe reports a timeout instead of waiting for a blocked outbound`() {
+        val startedAt = System.nanoTime()
+        val delay = LatencyProbe.measure("primary", "fallback", 1, 150L) {
+            Thread.sleep(5_000)
+            42L
+        }
+        val elapsedMillis = (System.nanoTime() - startedAt) / 1_000_000L
+        assertEquals(-1L, delay)
+        assertTrue(elapsedMillis < 1_000L, "expected the probe to stop at its budget, took ${elapsedMillis}ms")
     }
 }

@@ -200,4 +200,5 @@
     <string name="summary_pref_prefer_ipv6">ဒိုမိန်းဖြေရှင်းရာတွင် IPv6 လိပ်စာကို ဦးစားပေးပါသည်</string>
     <string name="title_pref_remote_dns">အဝေး DNS (UDP/TCP/HTTPS/QUIC၊ မဖြည့်လည်းရ)</string>
     <string name="title_pref_vpn_dns">VPN DNS (IPv4/IPv6 သာ)</string>
+    <string name="server_test_timeout">အချိန်ကုန်</string>
 </resources>

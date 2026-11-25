@@ -56,11 +56,22 @@ internal const val AUTO_CONNECT_FAST_CACHE_MS = 10 * 60 * 1000L
 /** A working server at least this fast ends Auto testing immediately. */
 internal const val AUTO_CONNECT_FAST_ENOUGH_MS = 250L
 /** Upper bound Auto testing may add before connecting, whatever the servers do. */
-internal const val AUTO_CONNECT_WAIT_WINDOW_MS = 2_000L
+internal const val AUTO_CONNECT_WAIT_WINDOW_MS = 3_000L
 /** Per-server probe budget; slow and dead servers cannot stall the connection. */
-internal const val AUTO_CONNECT_PROBE_TIMEOUT_MS = 1_500L
+internal const val AUTO_CONNECT_PROBE_TIMEOUT_MS = 3_000L
 /** Probes in flight at once during Auto. */
 internal const val AUTO_CONNECT_CONCURRENCY = 15
+/** Hard per-server budget for a real-delay test; a blocked or dead key reports a timeout. */
+internal const val REAL_PING_PROBE_BUDGET_MS = 3_000L
+
+/** A manual latency test is always a real-delay test through each server's own outbound. */
+internal fun realPingTestMessage(groupId: String, serverGuids: List<String>, allServers: Boolean) =
+    TestServiceMessage(
+        key = AppConfig.MSG_MEASURE_CONFIG_START,
+        subscriptionId = groupId,
+        serverGuids = if (allServers) serverGuids else emptyList(),
+        probeTimeoutMillis = REAL_PING_PROBE_BUDGET_MS,
+    )
 
 /** Lowest positive latency among [candidates], or null when nothing answered. */
 internal fun fastestServerGuid(results: Map<String, Long>, candidates: Collection<String>): String? =
@@ -464,7 +475,7 @@ class MainViewModel(
             MainAction.OpenInstallPermissionSettings -> Unit
             MainAction.Initialize -> initialize()
             MainAction.RefreshGroups -> setupGroupTab(forceRefresh = true)
-            MainAction.TestAllServers -> testAllRealPing(true)
+            MainAction.TestAllServers -> testAllRealPing()
             MainAction.TestRealAllServers -> testAllRealPing()
             MainAction.CancelTesting -> cancelAllPing()
             MainAction.RemoveAllServers -> removeAllServerAsync()
@@ -1044,7 +1055,6 @@ class MainViewModel(
                     key = AppConfig.MSG_MEASURE_CONFIG_START,
                     subscriptionId = groupId,
                     serverGuids = guids,
-                    onlyTcp = false,
                     concurrency = AUTO_CONNECT_CONCURRENCY,
                     probeTimeoutMillis = AUTO_CONNECT_PROBE_TIMEOUT_MS
                 ),
@@ -1126,7 +1136,7 @@ class MainViewModel(
         }
     }
 
-    fun testAllRealPing(onlyTcp: Boolean = false) {
+    fun testAllRealPing() {
         cancelAllPing()
         val groupId = uiState.value.selectedGroupId
         val servers = currentServers()
@@ -1147,11 +1157,10 @@ class MainViewModel(
             )
         }
         val request = testRequests.beginBulk(groupId)
-        val message = TestServiceMessage(
-            key = AppConfig.MSG_MEASURE_CONFIG_START,
-            subscriptionId = groupId,
-            serverGuids = if (keywordFilter.isNotEmpty()) serverGuids else emptyList(),
-            onlyTcp = onlyTcp
+        val message = realPingTestMessage(
+            groupId,
+            serverGuids,
+            allServers = keywordFilter.isEmpty(),
         )
         _uiState.update {
             it.copy(

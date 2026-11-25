@@ -1,5 +1,6 @@
 package com.v2ray.ang.ui.main
 
+import com.v2ray.ang.AppConfig
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -58,5 +59,22 @@ class MainTestRequestsTest {
         assertTrue(requests.isTesting)
         assertEquals(bulk, requests.completeBulk(bulk.id))
         assertFalse(requests.isTesting)
+    }
+
+    @Test
+    fun latencyTestIsARealDelayTestWithAThreeSecondBudget() {
+        val message = realPingTestMessage("group", listOf("a", "b"), allServers = true)
+        assertEquals(AppConfig.MSG_MEASURE_CONFIG_START, message.key)
+        assertEquals("group", message.subscriptionId)
+        assertEquals(listOf("a", "b"), message.serverGuids)
+        assertEquals(3_000L, message.probeTimeoutMillis)
+        assertFalse(message.onlyTcp)
+    }
+
+    @Test
+    fun aFilteredGroupReportsItsOwnGuidsInsteadOfAllServers() {
+        val message = realPingTestMessage("group", listOf("a"), allServers = false)
+        assertTrue(message.serverGuids.isEmpty())
+        assertEquals(3_000L, message.probeTimeoutMillis)
     }
 }
