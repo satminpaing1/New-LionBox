@@ -6,11 +6,6 @@ on:
       release_tag:
         required: false
         type: string
-      ui_release:
-        description: 'Explicitly requested UI release without a new core'
-        required: false
-        type: boolean
-        default: false
   push:
     branches:
       - main
@@ -24,25 +19,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v7
-    - name: Validate core update or explicitly requested UI release
+    - name: Require a new Xray core for a public release
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         RELEASE_TAG: ${{ inputs.release_tag }}
-        UI_RELEASE: ${{ inputs.ui_release }}
       run: |
         set -euo pipefail
         VERSION=$(python3 -c 'import re; print(re.search(r"versionName = \"([^\"]+)\"", open("android/V2rayNG/app/build.gradle.kts").read()).group(1))')
         [ "$RELEASE_TAG" = "v${VERSION}-lionbox" ]
-        if [ "$UI_RELEASE" = "true" ]; then
-          echo "Explicitly requested UI release; keeping the recorded Xray core."
-          exit 0
-        fi
         CURRENT=$(tr -d '\r\n' < android/.xray-core-version)
         LATEST=$(gh api repos/2dust/AndroidLibXrayLite/releases/latest --jq '.tag_name')
-        RELEASE=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq '.tag_name')
-        PUBLISHED=$(gh api "repos/$GITHUB_REPOSITORY/contents/android/.xray-core-version?ref=$RELEASE" --jq '.content' | base64 --decode | tr -d '\r\n')
-        if [ "$CURRENT" != "$LATEST" ] || [ "$CURRENT" = "$PUBLISHED" ]; then
-          echo "::error::No unpublished latest Xray core. Refusing a version-only signed release."
+        [[ "$LATEST" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+        RELEASE=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq '.tag_name' 2>/dev/null || true)
+        PUBLISHED=""
+        if [ -n "$RELEASE" ]; then
+          PUBLISHED=$(gh api "repos/$GITHUB_REPOSITORY/contents/android/.xray-core-version?ref=$RELEASE" --jq '.content' 2>/dev/null | base64 --decode | tr -d '\r\n' || true)
+        fi
+        echo "Tracked core: $CURRENT; latest core: $LATEST; last published core: ${PUBLISHED:-none} (${RELEASE:-no release})"
+        if [ "$CURRENT" != "$LATEST" ]; then
+          echo "::error::Tracked Xray core $CURRENT is not the latest core ($LATEST). Run the Update Xray Core workflow instead of a release."
+          exit 1
+        fi
+        if [ "$CURRENT" = "$PUBLISHED" ]; then
+          echo "::error::Xray core $CURRENT is already published in $RELEASE. Refusing a public release without a new core."
           exit 1
         fi
 
@@ -165,4 +164,5 @@ jobs:
           file: release-files/*
           tag: ${{ inputs.release_tag }}
           file_glob: true
+          draft: false
           prerelease: false
