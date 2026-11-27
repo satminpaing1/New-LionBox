@@ -13,8 +13,8 @@ android {
         applicationId = "com.keyconsole.vpn"
         minSdk = 24
         targetSdk = 37
-        versionCode = 783
-        versionName = "2.3.15.29"
+        versionCode = 784
+        versionName = "2.3.15.30"
 
         val abiFilterList = (properties["ABI_FILTERS"] as? String)?.split(';')
         splits {
