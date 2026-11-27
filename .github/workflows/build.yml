@@ -29,11 +29,14 @@ jobs:
         [ "$RELEASE_TAG" = "v${VERSION}-lionbox" ]
         CURRENT=$(tr -d '\r\n' < android/.xray-core-version)
         LATEST=$(gh api repos/2dust/AndroidLibXrayLite/releases/latest --jq '.tag_name')
-        [[ "$LATEST" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
-        RELEASE=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq '.tag_name' 2>/dev/null || true)
+        if [[ ! "$LATEST" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "::error::Unexpected upstream Xray core tag: $LATEST"
+          exit 1
+        fi
+        RELEASE=$(gh release list --repo "$GITHUB_REPOSITORY" --exclude-drafts --limit 1 --json tagName --jq '.[0].tagName // ""')
         PUBLISHED=""
         if [ -n "$RELEASE" ]; then
-          PUBLISHED=$(gh api "repos/$GITHUB_REPOSITORY/contents/android/.xray-core-version?ref=$RELEASE" --jq '.content' 2>/dev/null | base64 --decode | tr -d '\r\n' || true)
+          PUBLISHED=$(gh api "repos/$GITHUB_REPOSITORY/contents/android/.xray-core-version?ref=$RELEASE" --jq '.content' | base64 --decode | tr -d '\r\n')
         fi
         echo "Tracked core: $CURRENT; latest core: $LATEST; last published core: ${PUBLISHED:-none} (${RELEASE:-no release})"
         if [ "$CURRENT" != "$LATEST" ]; then
